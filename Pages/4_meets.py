@@ -110,39 +110,93 @@ def download_workbook():
 @st.cache_data(ttl=3600)
 def discover_year_candidates():
     """Return actual four-digit workbook tab names, newest first."""
-    with pd.ExcelFile(
-        BytesIO(download_workbook()),
-        engine="openpyxl",
-    ) as workbook:
-        return sorted(
-            (
-                int(name)
-                for name in workbook.sheet_names
-                if re.fullmatch(r"\d{4}", name.strip())
-            ),
-            reverse=True,
-        )
+    with ZipFile(BytesIO(download_workbook())) as workbook:
+        root = ElementTree.fromstring(workbook.read("xl/workbook.xml"))
+        names = [
+            item.attrib["name"]
+            for item in root.iter()
+            if item.tag.rsplit("}", 1)[-1] == "sheet"
+        ]
+    return sorted(
+        (int(name) for name in names if re.fullmatch(r"\d{4}", name.strip())),
+        reverse=True,
+    )
 
 
 @st.cache_data(ttl=3600)
 def load_year(year):
     """Read a year tab from the workbook without CSV column/row ambiguity."""
     sheet_name = str(year)
-
-    with pd.ExcelFile(
-        BytesIO(download_workbook()),
-        engine="openpyxl",
-    ) as workbook:
-        if sheet_name not in workbook.sheet_names:
-            return None
-
-        frame = pd.read_excel(
-            workbook,
-            sheet_name=sheet_name,
-            header=None,
-            dtype=object,
-            keep_default_na=False,
+    with ZipFile(BytesIO(download_workbook())) as workbook:
+        root = ElementTree.fromstring(workbook.read("xl/workbook.xml"))
+        relationships = ElementTree.fromstring(workbook.read("xl/_rels/workbook.xml.rels"))
+        targets = {
+            item.attrib["Id"]: item.attrib["Target"]
+            for item in relationships
+            if item.tag.rsplit("}", 1)[-1] == "Relationship"
+        }
+        sheet = next(
+            (item for item in root.iter()
+             if item.tag.rsplit("}", 1)[-1] == "sheet"
+             and item.attrib.get("name") == sheet_name),
+            None,
         )
+        if sheet is None:
+            return None
+        relationship_id = next(
+            value for key, value in sheet.attrib.items()
+            if key.rsplit("}", 1)[-1] == "id"
+        )
+        target = targets[relationship_id].lstrip("/")
+        sheet_path = target if target.startswith("xl/") else f"xl/{target}"
+
+        shared_strings = []
+        if "xl/sharedStrings.xml" in workbook.namelist():
+            shared_root = ElementTree.fromstring(workbook.read("xl/sharedStrings.xml"))
+            shared_strings = [
+                "".join(node.text or "" for node in item.iter()
+                        if node.tag.rsplit("}", 1)[-1] == "t")
+                for item in shared_root
+            ]
+        sheet_root = ElementTree.fromstring(workbook.read(sheet_path))
+
+    rows = []
+    for row_node in sheet_root.iter():
+        if row_node.tag.rsplit("}", 1)[-1] != "row":
+            continue
+        values = {}
+        for item in row_node:
+            if item.tag.rsplit("}", 1)[-1] != "c":
+                continue
+            match = re.match(r"[A-Z]+", item.attrib.get("r", "A1"))
+            column = 0
+            for letter in match.group():
+                column = column * 26 + ord(letter) - ord("A") + 1
+            column -= 1
+            value_node = next(
+                (child for child in item
+                 if child.tag.rsplit("}", 1)[-1] in ("v", "is")),
+                None,
+            )
+            value = ""
+            if value_node is not None:
+                if item.attrib.get("t") == "s":
+                    value = shared_strings[int(value_node.text or 0)]
+                elif item.attrib.get("t") == "inlineStr":
+                    value = "".join(node.text or "" for node in value_node.iter()
+                                    if node.tag.rsplit("}", 1)[-1] == "t")
+                else:
+                    value = value_node.text or ""
+            values[column] = value
+        row = [""] * (max(values, default=-1) + 1)
+        for column, value in values.items():
+            row[column] = value
+        rows.append(row)
+
+    width = max(SHEET_COLUMN_COUNT, max(map(len, rows), default=0))
+    frame = pd.DataFrame(
+        [row + [""] * (width - len(row)) for row in rows], dtype=str
+    )
 
     # Preserve the spreadsheet's A:Z column indexes, including trailing blanks.
     frame = frame.reindex(
