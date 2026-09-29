@@ -500,6 +500,7 @@ else:
     search = st.text_input(
         "Search meets",
         placeholder="Start typing a meet name…",
+        live=True,
     ).strip().casefold()
 
     matches = [
