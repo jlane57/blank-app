@@ -1,4 +1,7 @@
-from streamlit_app import *
+import streamlit as st
+from site_status import stop_if_site_offline
+
+stop_if_site_offline()
 
 st.title("Athletic Directory")
 
