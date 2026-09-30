@@ -23,3 +23,14 @@ $ curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
    $ uv run streamlit run streamlit_app.py
    ```
+
+### Configure the spreadsheet
+
+The app reads its spreadsheet ID and admin password from Streamlit secrets. For local testing, create `.streamlit/secrets.toml` with:
+
+```toml
+SPREADSHEET_ID = "your-spreadsheet-id"
+ADMIN_PASSWORD = "choose-a-strong-password"
+```
+
+The local secrets file is ignored by Git. Update either value here for local testing. For Streamlit Community Cloud, add or update both keys under the app's **Settings > Secrets**. Use a strong admin password; changing it in the secrets settings takes effect on the next app run.

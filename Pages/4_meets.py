@@ -16,10 +16,11 @@ from xml.etree import ElementTree
 from difflib import SequenceMatcher
 
 from site_status import stop_if_site_offline
+from spreadsheet_config import get_spreadsheet_id
 
 stop_if_site_offline()
 
-SPREADSHEET_ID = "1cO1crNvALaD4wS-T8Et5RDOSKLiHlWhbTT5vCCp-o3I"
+SPREADSHEET_ID = get_spreadsheet_id()
 
 NAME_COLUMN = 0
 GRADE_COLUMN = 1

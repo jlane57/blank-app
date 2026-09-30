@@ -1,14 +1,14 @@
 import streamlit as st
 
 from site_status import get_site_status, save_site_status
+from spreadsheet_config import get_required_secret
 
 st.title("Admin Portal")
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-PASSWORD = "1234"
-
+PASSWORD = get_required_secret("ADMIN_PASSWORD")
 
 def check_password():
     with st.form("admin_login"):

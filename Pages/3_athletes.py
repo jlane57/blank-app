@@ -11,10 +11,11 @@ import requests
 import streamlit as st
 
 from site_status import stop_if_site_offline
+from spreadsheet_config import get_spreadsheet_id
 
 stop_if_site_offline()
 
-SPREADSHEET_ID = "1cO1crNvALaD4wS-T8Et5RDOSKLiHlWhbTT5vCCp-o3I"
+SPREADSHEET_ID = get_spreadsheet_id()
 MEET_FIRST_COLUMN = 4
 MEET_LAST_COLUMN = 26
 PLACEHOLDERS = {"", "n/a", "na", "---", "--", "-", "—", "–", "dnr", "dnf", "dq"}
