@@ -1,24 +1,26 @@
-from io import BytesIO
 import re
-from decimal import Decimal, InvalidOperation
 from difflib import SequenceMatcher
-from zipfile import ZipFile
-from xml.etree import ElementTree
+from datetime import date
+from zipfile import BadZipFile
 
-import openpyxl
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import requests
 import streamlit as st
+from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import get_spreadsheet_id
+from spreadsheet_data import (
+	build_athlete_5k_chart_data,
+	parse_meet_date,
+	parse_workbook_years,
+)
 
 stop_if_site_offline()
 
 SPREADSHEET_ID = get_spreadsheet_id()
-MEET_FIRST_COLUMN = 4
-MEET_LAST_COLUMN = 26
-PLACEHOLDERS = {"", "n/a", "na", "---", "--", "-", "—", "–", "dnr", "dnf", "dq"}
 
 
 def class_year(grade, roster_year):
@@ -150,146 +152,40 @@ def athlete_match_score(query, athlete, roster_years):
 	return match_score
 
 
-def parse_time(value):
-	text = str(value or "").strip()
-	if not text:
-		return None
-
-	day_match = re.fullmatch(r"(\d+)\s+days?,?\s+(.+)", text, re.IGNORECASE)
-	days = int(day_match.group(1)) if day_match else 0
-	if day_match:
-		text = day_match.group(2).strip()
-
-	parts = text.split(":")
-	if len(parts) in (2, 3):
-		try:
-			seconds = Decimal(parts[-1])
-			if not seconds.is_finite() or not 0 <= seconds < 60:
-				return None
-			if len(parts) == 2:
-				minutes = int(parts[0])
-				if minutes < 0:
-					return None
-				return Decimal(days * 86400 + minutes * 60) + seconds
-			hours, minutes = int(parts[0]), int(parts[1])
-			if hours < 0 or not 0 <= minutes < 60:
-				return None
-			return Decimal(days * 86400 + hours * 3600 + minutes * 60) + seconds
-		except (InvalidOperation, ValueError):
-			return None
-
-	try:
-		day_fraction = Decimal(text)
-		if day_fraction.is_finite() and 0 <= day_fraction <= 1:
-			return day_fraction * Decimal(86400)
-	except InvalidOperation:
-		pass
-	return None
-
-
-def format_time(value):
-	seconds = parse_time(value)
-	if seconds is None:
-		return str(value).strip()
-
-	seconds = seconds.quantize(Decimal("0.001"))
-	whole_seconds = int(seconds)
-	minutes, remainder = divmod(whole_seconds, 60)
-	result = f"{minutes:02d}:{remainder:02d}"
-	fraction = seconds - Decimal(whole_seconds)
-	if fraction:
-		result += "." + f"{fraction:.3f}".split(".", 1)[1].rstrip("0")
-	return result
-
-
 @st.cache_data(ttl=3600)
-def load_rosters():
+def load_rosters(spreadsheet_id):
 	url = f"https://docs.google.com/spreadsheets/d/***REMOVED***/export"
 	response = requests.get(url, params={"format": "xlsx"}, timeout=30)
 	response.raise_for_status()
-	workbook_data = response.content
-
-	with ZipFile(BytesIO(workbook_data)) as archive:
-		root = ElementTree.fromstring(archive.read("xl/workbook.xml"))
-		sheet_names = [
-			sheet.attrib["name"]
-			for sheet in root.iter()
-			if sheet.tag.rsplit("}", 1)[-1] == "sheet"
-		]
-
-	workbook = openpyxl.load_workbook(
-		BytesIO(workbook_data), read_only=True, data_only=True
-	)
+	workbook_data = parse_workbook_years(response.content)
 	rosters = {}
-	for name in sheet_names:
-		if not re.fullmatch(r"\d{4}", name.strip()):
-			continue
-
-		year = int(name.strip())
-		worksheet = workbook[name]
-		meet_names = next(worksheet.iter_rows(
-			min_row=2, max_row=2, min_col=MEET_FIRST_COLUMN,
-			max_col=MEET_LAST_COLUMN, values_only=True,
-		))
-		meet_types = next(worksheet.iter_rows(
-			min_row=3, max_row=3, min_col=MEET_FIRST_COLUMN,
-			max_col=MEET_LAST_COLUMN, values_only=True,
-		))
-		athletes = []
-		for row_number, values in enumerate(
-			worksheet.iter_rows(min_row=5, min_col=1, max_col=MEET_LAST_COLUMN, values_only=True),
-			start=5,
-		):
-			athlete_name = str(values[0] or "").strip()
-			if not athlete_name:
-				continue
-
-			grade = str(values[1] or "").strip()
-			results = []
-			for index, result in enumerate(values[MEET_FIRST_COLUMN - 1:]):
-				meet_name = str(meet_names[index] or "").strip()
-				result_text = str(result or "").strip()
-				if not meet_name or result_text.casefold() in PLACEHOLDERS:
-					continue
-				meet_type = str(meet_types[index] or "").strip()
-				results.append({
-					"year": year,
-					"meet": meet_name,
-					"type": meet_type,
-					"raw_result": result,
-					"is_5k": bool(re.search(
-						r"(?<!\d)(?:5\s*k|5000(?:\s*(?:m|meter|metre))?)(?!\d)",
-						f"{meet_name} {meet_type}",
-						re.IGNORECASE,
-					)),
-				})
-			athletes.append({
-				"name": athlete_name,
-				"grade": grade,
-				"class_year": class_year(grade, year),
-				"row": row_number,
-				"results": results,
-			})
+	for year, data in workbook_data["years"].items():
+		athletes = data["athletes"]
+		for athlete in athletes:
+			athlete["class_year"] = class_year(athlete["grade"], year)
 		rosters[year] = athletes
-
-	workbook.close()
-	return rosters
+	return rosters, workbook_data["issues"]
 
 
-st.title("Athletic Directory")
+st.title("Athlete Directory")
 
 try:
-	rosters = load_rosters()
-except (requests.RequestException, OSError, KeyError, ValueError) as error:
+	rosters, workbook_issues = load_rosters(SPREADSHEET_ID)
+except (
+	requests.RequestException,
+	BadZipFile,
+	OSError,
+	KeyError,
+	ValueError,
+	TypeError,
+	OverflowError,
+	InvalidFileException,
+) as error:
 	st.error(f"Could not load athlete rosters: {error}")
 	st.stop()
 
-for athletes in rosters.values():
-	for athlete in athletes:
-		for result in athlete["results"]:
-			raw_result = result["raw_result"]
-			result["result"] = format_time(raw_result)
-			result["seconds"] = parse_time(raw_result)
+for issue in workbook_issues:
+	st.warning(f"Skipped a year tab: {issue}")
 
 years = sorted(rosters, reverse=True)
 if not years:
@@ -308,6 +204,7 @@ for year in years:
 for year in years:
 	for item in rosters[year]:
 		item["class_year"] = latest_class_year.get(item["name"].casefold())
+	rosters[year].sort(key=lambda item: item["name"].casefold())
 
 directory = {}
 for year in years:
@@ -345,7 +242,7 @@ if selected:
 		st.session_state.selected_athlete = None
 		st.rerun()
 
-	if st.button("← Back to all athletes"):
+	if st.button("← Back to All Athletes"):
 		st.session_state.selected_athlete = None
 		st.rerun()
 
@@ -357,7 +254,14 @@ if selected:
 		and roster_athlete["class_year"] == selected_class_year
 		for result in roster_athlete["results"]
 	]
-	athlete_results.sort(key=lambda result: result["year"], reverse=True)
+	athlete_results.sort(
+		key=lambda result: (
+			-result["year"],
+			parse_meet_date(result["raw_date"]) is None,
+			parse_meet_date(result["raw_date"]) or date.max,
+			result["meet"].casefold(),
+		)
+	)
 	five_k_results = [
 		result for result in athlete_results
 		if result["is_5k"] and result["seconds"] is not None
@@ -368,17 +272,80 @@ if selected:
 	else:
 		personal_record_label = "No 5K result"
 
-	image_column, profile_column = st.columns([1, 3])
-	with image_column:
-		st.image("Images/raiders_logo.png", width=160, caption="Image placeholder")
-	with profile_column:
-		st.title(athlete["name"])
-		class_label = f"Class of {athlete['class_year']}" if athlete["class_year"] else "Unknown"
-		class_column, pr_column = st.columns(2)
-		class_column.metric("Class", class_label)
-		pr_column.metric("5K PR", personal_record_label)
+	st.title(athlete["name"])
+	class_label = f"Class of {athlete['class_year']}" if athlete["class_year"] else "Unknown"
+	class_column, pr_column = st.columns(2)
+	class_column.metric("Class", class_label)
+	pr_column.metric("5K PR", personal_record_label)
 
-	st.subheader("Meet times")
+	st.subheader("5K Progression")
+	chart_results = build_athlete_5k_chart_data(athlete_results)
+	if chart_results:
+		chart_data = pd.DataFrame(chart_results)
+		years_in_chart = sorted(chart_data["year"].unique())
+		color_palette = px.colors.qualitative.Dark24
+		color_map = {
+			year: color_palette[index % len(color_palette)]
+			for index, year in enumerate(years_in_chart)
+		}
+		event_order = chart_data["event"].tolist()
+		tick_interval = 30
+		min_seconds = min(chart_data["seconds"])
+		max_seconds = max(chart_data["seconds"])
+		tick_start = int(min_seconds // tick_interval) * tick_interval
+		tick_end = int(max_seconds // tick_interval + 1) * tick_interval
+		tick_values = list(range(tick_start, tick_end + 1, tick_interval))
+		figure = go.Figure()
+		for year in years_in_chart:
+			year_data = chart_data[chart_data["year"] == year]
+			figure.add_trace(
+				go.Scatter(
+					x=year_data["event"],
+					y=year_data["seconds"],
+					mode="lines+markers",
+					name=year,
+					line={"color": color_map[year], "width": 2},
+					marker={
+						"size": 13,
+						"symbol": year_data["marker"],
+						"line": {"width": 1.5, "color": "white"},
+					},
+					customdata=year_data[["meet", "date", "time", "type", "year"]],
+					hovertemplate=(
+						"<b>%{customdata[0]}</b><br>"
+						"Date: %{customdata[1]}<br>"
+						"Time: %{customdata[2]}<br>"
+						"Meet Type: %{customdata[3]}<br>"
+						"Season: %{customdata[4]}<extra></extra>"
+					),
+				)
+			)
+		figure.update_layout(
+			template="plotly_white",
+			height=430,
+			legend_title_text="Season",
+			margin={"t": 25, "r": 20, "b": 100, "l": 25},
+			xaxis_title="Meet (Chronological)",
+			yaxis_title="5K Time",
+		)
+		figure.update_xaxes(
+			categoryorder="array",
+			categoryarray=event_order,
+			tickangle=-35,
+			showgrid=False,
+		)
+		figure.update_yaxes(
+			tickmode="array",
+			tickvals=tick_values,
+			ticktext=[f"{value // 60:02d}:{value % 60:02d}" for value in tick_values],
+			gridcolor="#D9E2EC",
+			zeroline=False,
+		)
+		st.plotly_chart(figure, width="stretch")
+	else:
+		st.info("No timed 5K results were found for this athlete.")
+
+	st.subheader("Meet Times")
 	if athlete_results:
 		for year in sorted({result["year"] for result in athlete_results}, reverse=True):
 			st.markdown(f"**{year}**")
@@ -387,6 +354,9 @@ if selected:
 					{
 						"Meet": result["meet"],
 						"Type": result["type"],
+						"Location": result["location"],
+						"Date": result["date"],
+						"Team Place": result["team_place"],
 						"Time": result["result"],
 					}
 					for result in athlete_results
@@ -394,13 +364,13 @@ if selected:
 				]),
 				height="content",
 				hide_index=True,
-				use_container_width=True,
+				width="stretch",
 			)
 	else:
 		st.info("No meet times were found for this athlete.")
 else:
 	search = st.text_input(
-		"Search athletes",
+		"Search Athletes",
 		type="search",
 		placeholder="Start typing an athlete name…",
 		live=True,
@@ -421,8 +391,8 @@ else:
 			)
 		)
 
-	def show_athlete_button(year, item, key):
-		if st.button(item["name"], key=key, use_container_width=True):
+	def show_athlete_button(item, key):
+		if st.button(item["name"], key=key, width="stretch"):
 			st.session_state.selected_athlete = (
 				item["name"].casefold(), item["class_year"]
 			)
@@ -430,16 +400,14 @@ else:
 
 	if search:
 		if matches:
-			st.caption("Matching athletes")
+			st.caption("Matching Athletes")
 			for _, year, item in matches:
-				show_athlete_button(
-					year, item, f"search_{year}_{item['row']}"
-				)
+				show_athlete_button(item, f"search_{year}_{item['row']}")
 		else:
 			st.info("No athletes match that search.")
 
-	st.subheader("All athletes")
+	st.subheader("All Athletes")
 	for year in years:
 		st.markdown(f"**{year}**")
 		for item in rosters[year]:
-			show_athlete_button(year, item, f"athlete_{year}_{item['row']}")
+			show_athlete_button(item, f"athlete_{year}_{item['row']}")
