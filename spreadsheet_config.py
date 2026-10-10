@@ -8,9 +8,6 @@ import requests
 import streamlit as st
 from streamlit.errors import StreamlitSecretNotFoundError
 
-PREVIEW_SPREADSHEET_ID = "***REMOVED***"
-
-
 def get_required_secret(name):
     try:
         value = st.secrets[name]
@@ -26,16 +23,7 @@ def get_required_secret(name):
 
 
 def get_spreadsheet_id():
-    try:
-        value = st.secrets["SPREADSHEET_ID"]
-    except (KeyError, StreamlitSecretNotFoundError):
-        return PREVIEW_SPREADSHEET_ID
-
-    if not isinstance(value, str) or not value.strip():
-        st.error("SPREADSHEET_ID in Streamlit secrets must be a non-empty string.")
-        st.stop()
-
-    return value.strip()
+    return get_required_secret("SPREADSHEET_ID").strip()
 
 
 def _column_index(cell_reference):
