@@ -12,8 +12,8 @@ PASSWORD = get_required_secret("ADMIN_PASSWORD")
 
 def check_password():
     with st.form("admin_login"):
-        password = st.text_input("Enter password", type="password")
-        submitted = st.form_submit_button("Sign in")
+        password = st.text_input("Enter Password", type="password")
+        submitted = st.form_submit_button("Sign In")
 
     if submitted:
         if password == PASSWORD:
@@ -24,7 +24,7 @@ def check_password():
 
 
 if not st.session_state.authenticated:
-    st.subheader("Please enter the admin password")
+    st.subheader("Please Enter the Admin Password")
     check_password()
 else:
     st.success("Access granted")
@@ -33,20 +33,20 @@ else:
     current = get_site_status()
 
     with st.container(border=True):
-        st.subheader("Website availability")
+        st.subheader("Website Availability")
 
         with st.form("website_availability"):
             enabled = st.toggle(
-                "Website is on",
+                "Website Is On",
                 value=current["enabled"],
                 help="Turn this off to show the custom message on public pages.",
             )
             offline_message = st.text_area(
-                "Message shown while the website is off",
+                "Message Shown While the Website Is Off",
                 value=current["offline_message"],
                 placeholder="Enter the message visitors should see.",
             )
-            submitted = st.form_submit_button("Save settings")
+            submitted = st.form_submit_button("Save Settings")
 
         if submitted:
             try:
@@ -60,7 +60,7 @@ else:
         st.caption("Reserved space for admin tools to be added later.")
 
     if st.button(
-        "Refresh spreadsheet data now",
+        "Refresh Spreadsheet Data Now",
         help="Clear Streamlit's cached data so the next page load fetches fresh spreadsheet data.",
     ):
         st.cache_data.clear()
