@@ -320,6 +320,11 @@ st.markdown(
 )
 
 st.markdown(
+    "<div class='home-disclaimer'>Photo credit River Bender.</div>",
+    unsafe_allow_html=True,
+)
+
+st.markdown(
     "<div class='home-disclaimer'>This site is not endorsed by Harrison High School and is intended for internal use only.</div>",
     unsafe_allow_html=True,
 )
