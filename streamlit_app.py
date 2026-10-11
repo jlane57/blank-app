@@ -320,6 +320,12 @@ ATHLETESPAGE = st.Page("Pages/3_athletes.py", title="Athlete Directory", icon="�
 YEARSPAGE = st.Page("Pages/4_season_overview.py", title="Data by Season", icon="🗓")
 EVENTSPAGE = st.Page("Pages/5_meets.py", title="Meets & Events", icon="🏅")
 ADMINPAGE = st.Page("Pages/6_admin.py", title="Admin Access", icon="🔑", visibility="hidden")
+BUGREPORTPAGE = st.Page(
+    "Pages/7_report_a_bug.py",
+    title="Report a Bug",
+    icon="🐞",
+    visibility="hidden",
+)
 
 st.sidebar.title("Harrison Boys' Cross Country")
 st.sidebar.image("Images/raiders_logo.png", width=225)
@@ -330,10 +336,19 @@ st.sidebar.page_link(ATHLETESPAGE)
 st.sidebar.page_link(YEARSPAGE)
 st.sidebar.page_link(EVENTSPAGE)
 st.sidebar.markdown("---")
+st.sidebar.page_link(BUGREPORTPAGE)
 st.sidebar.page_link(ADMINPAGE)
 
 pg = st.navigation(
-    [HOMEPAGE, RECORDSPAGE, ATHLETESPAGE, YEARSPAGE, EVENTSPAGE, ADMINPAGE],
+    [
+        HOMEPAGE,
+        RECORDSPAGE,
+        ATHLETESPAGE,
+        YEARSPAGE,
+        EVENTSPAGE,
+        BUGREPORTPAGE,
+        ADMINPAGE,
+    ],
     position="hidden",
 )
 

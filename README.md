@@ -36,7 +36,7 @@ The local secrets file is ignored by Git. Update either value here for local tes
 
 ### Anonymous bug reports
 
-The **Report a Bug** tab is public, does not ask for an identity, and sends reports
+The **Report a Bug** sidebar page is public, does not ask for an identity, and sends reports
 over HTTPS to a private Google Sheet using the Apps Script receiver in
 [`bug_report_receiver.gs`](./bug_report_receiver.gs). Reports include their
 submission time and text only; do not ask users to include personal or sensitive
