@@ -195,13 +195,13 @@ if selected is not None:
             {
                 "Name": result["name"],
                 "Grade": result["grade"],
-                "Result": result["result"],
+                "Time": result["result"],
                 "_seconds": result["seconds"],
                 "_is_varsity": result["is_varsity"],
             }
             for result in meet["results"]
         ],
-        columns=["Name", "Grade", "Result", "_seconds", "_is_varsity"],
+        columns=["Name", "Grade", "Time", "_seconds", "_is_varsity"],
     )
 
     if results.empty:

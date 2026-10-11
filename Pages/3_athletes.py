@@ -350,18 +350,17 @@ if selected:
 		for year in sorted({result["year"] for result in athlete_results}, reverse=True):
 			st.markdown(f"**{year}**")
 			st.dataframe(
-				pd.DataFrame([
-					{
-						"Meet": result["meet"],
-						"Type": result["type"],
-						"Location": result["location"],
-						"Date": result["date"],
-						"Team Place": result["team_place"],
-						"Time": result["result"],
-					}
-					for result in athlete_results
-					if result["year"] == year
-				]),
+				pd.DataFrame(
+					[
+						{
+							"Meet": result["meet"],
+							"Type": result["type"],
+							"Time": result["result"],
+						}
+						for result in athlete_results
+						if result["year"] == year
+					]
+				),
 				height="content",
 				hide_index=True,
 				width="stretch",

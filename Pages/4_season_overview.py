@@ -1,3 +1,4 @@
+from datetime import date
 from zipfile import BadZipFile
 
 import pandas as pd
@@ -10,13 +11,54 @@ from openpyxl.utils.exceptions import InvalidFileException
 from site_status import stop_if_site_offline
 from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
 from spreadsheet_data import (
-    build_postseason_season_chart_data,
     build_postseason_roster,
+    parse_meet_date,
     parse_workbook_years,
     sort_meets_by_date,
 )
 
 stop_if_site_offline()
+
+
+def _truncate_axis_label(label, max_length=18):
+    text = str(label or "").strip()
+    if len(text) <= max_length:
+        return text
+    return text[: max_length - 1].rstrip() + "…"
+
+
+def _runner_5k_history(years, runner_name):
+    history = []
+    for year in sorted(years):
+        for athlete in years[year].get("athletes", []):
+            if athlete.get("name", "").casefold() != runner_name.casefold():
+                continue
+            for result in athlete.get("results", []):
+                if not result.get("is_5k") or result.get("seconds") is None:
+                    continue
+                history.append(
+                    {
+                        "year": year,
+                        "name": athlete["name"],
+                        "meet": result["meet"],
+                        "date": result["date"],
+                        "raw_date": result.get("raw_date"),
+                        "event": f"{result['meet']} ({result['date']}, {year})",
+                        "x_label": _truncate_axis_label(f"{result['meet']} ({result['date']})"),
+                        "seconds": result["seconds"],
+                        "time": result["result"],
+                        "type": result["type"],
+                    }
+                )
+    history.sort(
+        key=lambda row: (
+            parse_meet_date(row["raw_date"]) is None,
+            parse_meet_date(row["raw_date"]) or date.max,
+            row["year"],
+            row["meet"].casefold(),
+        )
+    )
+    return history
 
 
 @st.cache_data(ttl=3600)
@@ -88,8 +130,62 @@ if meet_rows:
 else:
     st.info("No meets were found for this season.")
 
-st.subheader("Postseason Roster")
-roster_rows = build_postseason_roster(year_data["years"], selected_year)
+all_athletes = [
+    athlete["name"]
+    for athlete in season["athletes"]
+    if athlete.get("name")
+]
+unique_athletes = []
+for athlete_name in all_athletes:
+    if athlete_name.casefold() not in {item.casefold() for item in unique_athletes}:
+        unique_athletes.append(athlete_name)
+
+postseason_athletes = [
+    athlete["name"]
+    for athlete in season["athletes"]
+    if athlete.get("is_postseason") and athlete.get("name")
+]
+
+all_roster_rows = build_postseason_roster(year_data["years"], selected_year)
+
+runner_options = ["All", "Postseason Roster", "Top N"]
+runner_view = st.selectbox(
+    "Display runners",
+    runner_options,
+    index=runner_options.index("Postseason Roster"),
+    key="season_runner_view",
+)
+
+if runner_view == "All":
+    selected_runner_names = unique_athletes
+elif runner_view == "Postseason Roster":
+    selected_runner_names = postseason_athletes
+else:
+    candidate_names = postseason_athletes or unique_athletes
+    candidate_stats = []
+    for athlete_name in candidate_names:
+        history = _runner_5k_history(year_data["years"], athlete_name)
+        if not history:
+            continue
+        candidate_stats.append((athlete_name, min(item["seconds"] for item in history)))
+    candidate_stats.sort(key=lambda item: item[1])
+    candidate_names = [name for name, _ in candidate_stats]
+    max_runners = len(candidate_names)
+    top_count = st.number_input(
+        "Top runners",
+        min_value=1,
+        max_value=max_runners,
+        value=min(10, max_runners),
+        step=1,
+        key="season_top_runner_count",
+    )
+    selected_runner_names = candidate_names[:top_count]
+
+roster_rows = [
+    row
+    for row in all_roster_rows
+    if row["Athlete"].casefold() in {name.casefold() for name in selected_runner_names}
+]
 if roster_rows:
     st.dataframe(
         [
@@ -104,80 +200,98 @@ if roster_rows:
         height="content",
     )
 else:
-    st.info("No bolded athlete names were found in this season.")
+    st.info("No runners match the current filter.")
 
-st.subheader("Postseason 5K Progression")
-progression_rows = build_postseason_season_chart_data(
-    year_data["years"],
-    selected_year,
-)
-if progression_rows:
-    progression_data = pd.DataFrame(progression_rows)
-    event_order = list(dict.fromkeys(progression_data["event"]))
-    athletes = sorted(progression_data["athlete"].unique(), key=str.casefold)
-    color_palette = px.colors.qualitative.Dark24
+season_history = []
+for athlete_name in selected_runner_names:
+    history = _runner_5k_history(year_data["years"], athlete_name)
+    if history:
+        season_history.append((athlete_name, history))
+
+if season_history:
+    year_palette = {
+        str(year): color
+        for color, year in zip(px.colors.qualitative.Dark24, sorted(year_data["years"]))
+    }
     figure = go.Figure()
 
-    for index, athlete_name in enumerate(athletes):
-        athlete_data = progression_data[
-            progression_data["athlete"] == athlete_name
-        ]
-        figure.add_trace(
-            go.Scatter(
-                x=athlete_data["event"],
-                y=athlete_data["seconds"],
+    for athlete_name, history in season_history:
+        for index, current_row in enumerate(history):
+            if index == 0:
+                continue
+            previous_row = history[index - 1]
+            trace = go.Scatter(
+                x=[previous_row["x_label"], current_row["x_label"]],
+                y=[previous_row["seconds"], current_row["seconds"]],
                 mode="lines+markers",
                 name=athlete_name,
-                line={
-                    "color": color_palette[index % len(color_palette)],
-                    "width": 2,
-                },
+                legendgroup=athlete_name,
+                showlegend=index == 1,
+                line={"color": year_palette.get(str(current_row["year"]), "#4C78A8"), "width": 3},
                 marker={
-                    "size": 11,
-                    "symbol": athlete_data["marker"],
+                    "size": 9,
+                    "symbol": "circle",
+                    "color": year_palette.get(str(current_row["year"]), "#4C78A8"),
                     "line": {"width": 1, "color": "white"},
                 },
-                customdata=athlete_data[["meet", "date", "time", "type"]],
+                customdata=[
+                    [
+                        athlete_name,
+                        previous_row["meet"],
+                        previous_row["date"],
+                        previous_row["time"],
+                        previous_row["type"],
+                    ],
+                    [
+                        athlete_name,
+                        current_row["meet"],
+                        current_row["date"],
+                        current_row["time"],
+                        current_row["type"],
+                    ],
+                ],
                 hovertemplate=(
-                    "<b>%{fullData.name}</b><br>"
-                    "%{customdata[0]}<br>"
-                    "Date: %{customdata[1]}<br>"
-                    "Time: %{customdata[2]}<br>"
-                    "Meet Type: %{customdata[3]}<extra></extra>"
+                    "<b>%{customdata[0]}</b><br>"
+                    "%{customdata[1]}<br>"
+                    "Date: %{customdata[2]}<br>"
+                    "Time: %{customdata[3]}<br>"
+                    "Meet Type: %{customdata[4]}<extra></extra>"
                 ),
             )
-        )
+            figure.add_trace(trace)
 
-    minimum = min(progression_data["seconds"])
-    maximum = max(progression_data["seconds"])
-    tick_interval = 30
-    tick_start = int(minimum // tick_interval) * tick_interval
-    tick_end = int(maximum // tick_interval + 1) * tick_interval
-    tick_values = list(range(tick_start, tick_end + 1, tick_interval))
-    figure.update_layout(
-        template="plotly_white",
-        height=500,
-        legend_title_text="Athlete",
-        margin={"t": 25, "r": 20, "b": 100, "l": 25},
-        xaxis_title="Meet (Chronological)",
-        yaxis_title="5K Time",
-    )
-    figure.update_xaxes(
-        categoryorder="array",
-        categoryarray=event_order,
-        tickangle=-35,
-        showgrid=False,
-    )
-    figure.update_yaxes(
-        tickmode="array",
-        tickvals=tick_values,
-        ticktext=[f"{value // 60:02d}:{value % 60:02d}" for value in tick_values],
-        gridcolor="#D9E2EC",
-        zeroline=False,
-    )
-    st.plotly_chart(figure, width="stretch")
+    if not figure.data:
+        st.info("No timed 5K results were found for the selected runners.")
+    else:
+        minimum = min(point for trace in figure.data for point in trace.y)
+        maximum = max(point for trace in figure.data for point in trace.y)
+        tick_interval = 30
+        tick_start = int(minimum // tick_interval) * tick_interval
+        tick_end = int(maximum // tick_interval + 1) * tick_interval
+        tick_values = list(range(tick_start, tick_end + 1, tick_interval))
+        figure.update_layout(
+            template="plotly_white",
+            height=500,
+            legend_title_text="Athlete",
+            margin={"t": 25, "r": 20, "b": 70, "l": 25},
+            xaxis_title="Meet",
+            yaxis_title="5K Time",
+            hovermode="closest",
+        )
+        figure.update_xaxes(
+            showgrid=False,
+            tickangle=-35,
+        )
+        figure.update_yaxes(
+            tickmode="array",
+            tickvals=tick_values,
+            ticktext=[f"{value // 60:02d}:{value % 60:02d}" for value in tick_values],
+            gridcolor="#D9E2EC",
+            zeroline=False,
+        )
+        st.plotly_chart(figure, width="stretch")
 else:
-    st.info("No timed postseason 5K results were found for this season.")
+    st.info("No timed 5K results were found for the selected runners.")
 
 st.subheader("Coaches:")
 st.caption("To be updated.")
