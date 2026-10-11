@@ -34,6 +34,37 @@ ADMIN_PASSWORD = "choose-a-strong-password"
 
 The local secrets file is ignored by Git. Update either value here for local testing. For Streamlit Community Cloud, add or update both keys under the app's **Settings > Secrets**. Use a strong admin password; changing it in the secrets settings takes effect on the next app run. All team pages are public to anyone with the site link; only the Admin page requires `ADMIN_PASSWORD`.
 
+### Anonymous bug reports
+
+The **Report a Bug** tab is public, does not ask for an identity, and sends reports
+over HTTPS to a private Google Sheet using the Apps Script receiver in
+[`bug_report_receiver.gs`](./bug_report_receiver.gs). Reports include their
+submission time and text only; do not ask users to include personal or sensitive
+information. Google may process technical request metadata as part of operating
+the service.
+
+To enable submissions:
+
+1. Create a Google Sheet for private report storage.
+2. Open **Extensions > Apps Script** from the Sheet and copy the contents of
+   `bug_report_receiver.gs` into the script editor.
+3. In Apps Script **Project Settings > Script Properties**, add:
+   - `BUG_REPORT_SHEET_ID`: the ID from the Google Sheet URL.
+   - `BUG_REPORT_SECRET`: a long, randomly generated secret.
+4. Deploy the script as a **Web app**, executing as yourself and accessible to
+   **Anyone**. The shared secret in the POST body protects the write operation;
+   the Sheet itself should remain private.
+5. Add the deployed `/exec` URL and the same secret to Streamlit secrets:
+
+   ```toml
+   BUG_REPORT_WEB_APP_URL = "https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
+   BUG_REPORT_SECRET = "use-the-same-long-random-secret"
+   ```
+
+Submissions are sent by the Streamlit server, not directly by the visitor's
+browser. They are protected in transit by HTTPS and stored in the private Sheet;
+this is not end-to-end encryption.
+
 ### Year-tab structure
 
 All four-digit year tabs are read using either supported worksheet layout:

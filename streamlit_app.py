@@ -152,6 +152,11 @@ st.markdown(
         background: transparent;
     }
 
+    [data-testid="stSidebar"] [data-testid="stImage"] button,
+    [data-testid="stSidebar"] [data-testid="stImage"] [data-testid="stImageToolbar"] {
+        display: none !important;
+    }
+
     [data-testid="stSidebar"] hr {
         border-color: #F58220;
         opacity: 0.75;

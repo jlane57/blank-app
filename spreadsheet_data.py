@@ -193,6 +193,7 @@ def build_athlete_5k_chart_data(results):
             {
                 "name": result["name"],
                 "year": str(result["year"]),
+                "column": result.get("column"),
                 "meet": result["meet"],
                 "type": result["type"],
                 "date": result["date"],

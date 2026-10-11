@@ -10,6 +10,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 from site_status import stop_if_site_offline
 from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
 from spreadsheet_data import (
+    build_athlete_5k_chart_data,
     build_postseason_roster,
     parse_meet_date,
     parse_workbook_years,
@@ -29,7 +30,10 @@ def _build_runner_5k_index(years):
     for year, season in years.items():
         for athlete in season.get("athletes", []):
             for result in athlete.get("results", []):
-                if not result.get("is_5k") or result.get("seconds") is None:
+                if (
+                    "5k" not in str(result.get("type", "")).casefold()
+                    or result.get("seconds") is None
+                ):
                     continue
                 runner_name = athlete["name"].casefold()
                 histories.setdefault(runner_name, []).append(
@@ -42,7 +46,9 @@ def _build_runner_5k_index(years):
                         "raw_date": result.get("raw_date"),
                         "seconds": result["seconds"],
                         "time": result["result"],
+                        "result": result["result"],
                         "type": result["type"],
+                        "is_5k": result["is_5k"],
                     }
                 )
     for history in histories.values():
@@ -54,6 +60,12 @@ def _build_runner_5k_index(years):
                 row["meet"].casefold(),
             )
         )
+        markers = {
+            (int(result["year"]), result["column"]): result["marker"]
+            for result in build_athlete_5k_chart_data(history)
+        }
+        for result in history:
+            result["marker"] = markers[(result["year"], result["column"])]
     return histories
 
 
@@ -68,8 +80,9 @@ def load_spreadsheet_years(spreadsheet_id):
     parsed_data = parse_workbook_years(response.content)
     return {
         "years": parsed_data["years"],
+        "runner_5k_index": _build_runner_5k_index(parsed_data["years"]),
         "issues": parsed_data.get("issues", []),
-        "schema_version": 2,
+        "schema_version": 3,
     }
 
 
@@ -97,7 +110,7 @@ if not years:
 
 selected_year = st.selectbox("Season", years)
 season = year_data["years"][selected_year]
-runner_5k_index = _build_runner_5k_index(year_data["years"])
+runner_5k_index = year_data["runner_5k_index"]
 
 st.subheader(f"{selected_year} Meets")
 meet_rows = sort_meets_by_date(
@@ -196,7 +209,7 @@ if roster_rows:
     roster_table_rows = [
         {
             key: athlete[key]
-            for key in ("Rank", "Athlete", "Grade")
+            for key in ("Athlete", "Grade")
         }
         | {
             "Current PR": athlete["PR"],
@@ -209,7 +222,7 @@ if roster_rows:
         roster_table_rows,
         hide_index=True,
         width="stretch",
-        height=38 * (len(roster_table_rows) + 1),
+        height=35 * len(roster_table_rows) + 38,
     )
 else:
     st.info("No runners match the current filter.")
@@ -262,6 +275,7 @@ if season_history:
                 },
                 marker={
                     "size": 8,
+                    "symbol": [result["marker"] for result in history],
                     "color": color,
                     "line": {"width": 1, "color": "white"},
                 },
