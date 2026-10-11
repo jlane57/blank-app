@@ -19,6 +19,8 @@ def check_password():
         if password == configured_password:
             st.session_state.authenticated = True
             st.rerun()
+        elif password in {"67", "6767"}:
+            st.info("Heehee six seven. Still not the password though, nice try")
         else:
             st.error("Access denied")
 
