@@ -26,6 +26,10 @@ def get_spreadsheet_id():
     return get_required_secret("SPREADSHEET_ID").strip()
 
 
+def get_spreadsheet_export_url(spreadsheet_id):
+    return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export"
+
+
 def _column_index(cell_reference):
     match = re.match(r"([A-Z]+)", cell_reference or "")
     if not match:
@@ -93,7 +97,7 @@ def _read_sheet_rows(workbook, sheet_path):
 def get_last_updated_note():
     try:
         response = requests.get(
-            f"https://docs.google.com/spreadsheets/d/***REMOVED***/export",
+            get_spreadsheet_export_url(get_spreadsheet_id()),
             params={"format": "xlsx"},
             timeout=30,
         )

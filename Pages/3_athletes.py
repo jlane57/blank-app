@@ -11,7 +11,7 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_id
+from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
 from spreadsheet_data import (
 	build_athlete_5k_chart_data,
 	parse_meet_date,
@@ -154,7 +154,7 @@ def athlete_match_score(query, athlete, roster_years):
 
 @st.cache_data(ttl=3600)
 def load_rosters(spreadsheet_id):
-	url = f"https://docs.google.com/spreadsheets/d/***REMOVED***/export"
+	url = get_spreadsheet_export_url(spreadsheet_id)
 	response = requests.get(url, params={"format": "xlsx"}, timeout=30)
 	response.raise_for_status()
 	workbook_data = parse_workbook_years(response.content)

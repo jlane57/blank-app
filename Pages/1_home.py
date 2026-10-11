@@ -7,7 +7,7 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_id
+from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
 from spreadsheet_data import build_race_totals, parse_workbook_years
 
 stop_if_site_offline()
@@ -16,7 +16,7 @@ stop_if_site_offline()
 @st.cache_data(ttl=3600)
 def load_year_data(spreadsheet_id):
     response = requests.get(
-        f"https://docs.google.com/spreadsheets/d/***REMOVED***/export",
+        get_spreadsheet_export_url(spreadsheet_id),
         params={"format": "xlsx"},
         timeout=30,
     )

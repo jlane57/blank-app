@@ -6,6 +6,12 @@ import spreadsheet_config
 
 
 class SpreadsheetConfigTests(unittest.TestCase):
+    def test_spreadsheet_export_url_uses_configured_id(self):
+        self.assertEqual(
+            spreadsheet_config.get_spreadsheet_export_url("configured-id"),
+            "https://docs.google.com/spreadsheets/d/configured-id/export",
+        )
+
     def test_spreadsheet_id_comes_from_required_secret(self):
         with patch(
             "spreadsheet_config.get_required_secret",
