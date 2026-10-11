@@ -258,13 +258,12 @@ def build_race_totals(years):
         (result["seconds"] for result in results),
         start=Decimal(0),
     )
-    dated_seasons = [
-        meet_date.year
-        for season in years.values()
-        for meet in season.get("meets", [])
-        if (meet_date := parse_meet_date(meet.get("raw_date"))) is not None
+    seasons_with_results = [
+        year
+        for year, season in years.items()
+        if season.get("results")
     ]
-    first_year = min(dated_seasons, default=min(years, default=None))
+    first_year = min(seasons_with_results, default=None)
 
     return {
         "race_count": len(results),

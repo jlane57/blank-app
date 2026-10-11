@@ -369,7 +369,7 @@ class SpreadsheetDataTests(unittest.TestCase):
             ],
         )
 
-    def test_race_totals_count_results_sum_duration_and_use_earliest_meet_year(self):
+    def test_race_totals_count_results_sum_duration_and_use_earliest_result_year(self):
         earlier_rows = [
             [],
             ["Name", "Grade", "", "Early Meet"],
@@ -401,6 +401,34 @@ class SpreadsheetDataTests(unittest.TestCase):
         self.assertEqual(totals, {
             "race_count": 3,
             "hours_raced": Decimal("0.9"),
+            "first_year": 2023,
+        })
+
+    def test_race_totals_since_year_ignores_earlier_seasons_without_results(self):
+        empty_earlier_season = {
+            "meets": [{"raw_date": date(2020, 9, 1)}],
+            "results": [],
+        }
+        first_season_with_results = {
+            "meets": [{"raw_date": date(2023, 9, 1)}],
+            "results": [{"year": 2023, "seconds": Decimal(960)}],
+        }
+        later_season = {
+            "meets": [{"raw_date": date(2024, 9, 1)}],
+            "results": [{"year": 2024, "seconds": Decimal(1020)}],
+        }
+
+        totals = build_race_totals(
+            {
+                2020: empty_earlier_season,
+                2023: first_season_with_results,
+                2024: later_season,
+            }
+        )
+
+        self.assertEqual(totals, {
+            "race_count": 2,
+            "hours_raced": Decimal("0.6"),
             "first_year": 2023,
         })
 
