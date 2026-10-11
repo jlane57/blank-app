@@ -289,6 +289,10 @@ if selected:
 			for index, year in enumerate(years_in_chart)
 		}
 		event_order = chart_data["event"].tolist()
+		event_labels = [
+			str(meet)[:5]
+			for meet in chart_data["meet"]
+		]
 		tick_interval = 30
 		min_seconds = min(chart_data["seconds"])
 		max_seconds = max(chart_data["seconds"])
@@ -304,7 +308,7 @@ if selected:
 					y=year_data["seconds"],
 					mode="lines+markers",
 					name=year,
-					line={"color": color_map[year], "width": 2},
+					line={"color": color_map[year], "width": 2, "shape": "spline", "smoothing": 0.4},
 					marker={
 						"size": 13,
 						"symbol": year_data["marker"],
@@ -331,6 +335,9 @@ if selected:
 		figure.update_xaxes(
 			categoryorder="array",
 			categoryarray=event_order,
+			tickmode="array",
+			tickvals=event_order,
+			ticktext=event_labels,
 			tickangle=-35,
 			showgrid=False,
 		)

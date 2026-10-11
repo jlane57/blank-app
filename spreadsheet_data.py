@@ -286,7 +286,19 @@ def _format_seconds(seconds):
     return result
 
 
-def build_postseason_roster(years, selected_year):
+def _format_improvement_seconds(seconds):
+    seconds = abs(seconds).quantize(Decimal("0.001"))
+    whole_seconds = int(seconds)
+    hours, remainder = divmod(whole_seconds, 3600)
+    minutes, remainder = divmod(remainder, 60)
+    result = f"{hours}:{minutes:02d}:{remainder:02d}"
+    fraction = seconds - Decimal(whole_seconds)
+    if fraction:
+        result += "." + f"{fraction:.3f}".split(".", 1)[1].rstrip("0")
+    return result
+
+
+def build_postseason_roster(years, selected_year, postseason_only=True):
     season = years[selected_year]
     previous_season = years.get(selected_year - 1, {})
 
@@ -315,7 +327,7 @@ def build_postseason_roster(years, selected_year):
 
     roster = []
     for athlete in season["athletes"]:
-        if not athlete.get("is_postseason", False):
+        if postseason_only and not athlete.get("is_postseason", False):
             continue
 
         record = personal_record(athlete)
@@ -323,12 +335,21 @@ def build_postseason_roster(years, selected_year):
         improvement = "—"
         if record is not None and previous_record is not None:
             change = previous_record["seconds"] - record["seconds"]
-            if change > 0:
-                improvement = f"-{_format_seconds(change)}"
-            elif change < 0:
-                improvement = f"+{_format_seconds(change)}"
-            else:
-                improvement = "00:00"
+            time_sign = "-" if change > 0 else "+" if change < 0 else ""
+            time_change = _format_improvement_seconds(change)
+            percent_change = (
+                (record["seconds"] - previous_record["seconds"])
+                / previous_record["seconds"]
+                * Decimal(100)
+            ).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+            percent_display = (
+                "0.0"
+                if percent_change == 0
+                else f"{percent_change:+.1f}"
+            )
+            improvement = f"{time_sign}{time_change} ({percent_display}%)"
+            if change == 0:
+                improvement = f"{time_change} (0.0%)"
 
         roster.append(
             {

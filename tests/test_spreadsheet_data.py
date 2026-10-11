@@ -234,21 +234,30 @@ class SpreadsheetDataTests(unittest.TestCase):
 
         roster = build_postseason_roster({2025: previous, 2026: current}, 2026)
         self.assertEqual(len(roster), 3)
+        all_runners = build_postseason_roster(
+            {2025: previous, 2026: current},
+            2026,
+            postseason_only=False,
+        )
+        self.assertEqual(
+            {athlete["Athlete"] for athlete in all_runners},
+            {"Runner One", "Runner Two", "Runner Three", "Not Postseason"},
+        )
         self.assertEqual(roster[0]["Rank"], 1)
         self.assertEqual(roster[0]["Athlete"], "Runner Two")
         self.assertEqual(roster[0]["PR"], "16:20")
-        self.assertEqual(roster[0]["Improvement"], "-00:25")
+        self.assertEqual(roster[0]["Improvement"], "-0:00:25 (-2.5%)")
         self.assertEqual(roster[1]["Rank"], 2)
         self.assertEqual(roster[1]["Athlete"], "Runner One")
         self.assertEqual(roster[1]["Grade"], "12")
         self.assertEqual(roster[1]["PR"], "16:35")
         self.assertEqual(roster[1]["Meet"], "5K Invitational")
-        self.assertEqual(roster[1]["Improvement"], "-00:15")
+        self.assertEqual(roster[1]["Improvement"], "-0:00:15 (-1.5%)")
         self.assertEqual(roster[2]["Athlete"], "Runner Three")
         self.assertEqual(roster[2]["Rank"], 3)
-        self.assertEqual(roster[2]["Improvement"], "+00:10")
+        self.assertEqual(roster[2]["Improvement"], "+0:00:10 (+1.0%)")
 
-    def test_improvement_keeps_zero_minute_field_and_sign(self):
+    def test_improvement_formats_elapsed_time_and_year_over_year_percent(self):
         previous_rows = [
             [],
             ["Name", "Grade", "", "5K"],
@@ -276,7 +285,7 @@ class SpreadsheetDataTests(unittest.TestCase):
         assert previous is not None and current is not None
 
         roster = build_postseason_roster({2025: previous, 2026: current}, 2026)
-        self.assertEqual(roster[0]["Improvement"], "-00:00.25")
+        self.assertEqual(roster[0]["Improvement"], "-0:00:00.25 (0.0%)")
         self.assertEqual(roster[0]["PR"], "16:25.25")
 
         unchanged_season = parse_year_sheet(previous_rows, 2026, {(7, 0)})
@@ -286,7 +295,7 @@ class SpreadsheetDataTests(unittest.TestCase):
             {2025: previous, 2026: unchanged_season},
             2026,
         )
-        self.assertEqual(unchanged[0]["Improvement"], "00:00")
+        self.assertEqual(unchanged[0]["Improvement"], "0:00:00 (0.0%)")
 
     def test_athlete_5k_chart_filters_meet_type_and_sorts_by_date(self):
         rows = [
