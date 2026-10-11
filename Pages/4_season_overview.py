@@ -227,8 +227,15 @@ if roster_rows:
 else:
     st.info("No runners match the current filter.")
 
+chart_runner_names = st.multiselect(
+    "Athletes to compare",
+    options=selected_runner_names,
+    default=selected_runner_names,
+    key=f"season_chart_athletes_{selected_year}",
+)
+
 season_history = []
-for athlete_name in selected_runner_names:
+for athlete_name in chart_runner_names:
     history = [
         result
         for result in runner_5k_index.get(athlete_name.casefold(), [])
@@ -332,7 +339,10 @@ if season_history:
         )
         st.plotly_chart(figure, width="stretch")
 else:
-    st.info("No timed 5K results were found for the selected runners.")
+    if chart_runner_names:
+        st.info(f"No timed 5K results were found for {selected_year}.")
+    else:
+        st.info("Select at least one athlete to compare.")
 
 st.subheader("Coaches:")
 st.caption("To be updated.")
