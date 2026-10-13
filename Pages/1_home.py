@@ -262,8 +262,8 @@ st.markdown(
     </style>
     <section class="home-hero">
         <div class="home-hero-content">
-            <div class="home-hero-kicker">Raider Cross Country</div>
-            <h1>Welcome to Harrison Boys' Cross Country!</h1>
+            <div class="home-hero-kicker">Coming soon: Girls' Team</div>
+            <h1>Welcome to Harrison Cross Country!</h1>
             <div class="home-hero-divider"></div>
             <p>Use the navigation bar on the left to view team stats</p>
         </div>
