@@ -1,7 +1,9 @@
-# Harrison Boys' Cross Country
+# Harrison Cross Country
 
-Streamlit site for Harrison Boys' Cross Country team records, athlete results,
-and meet data.
+Streamlit site for Harrison Cross Country team records, athlete results, and
+meet data. The existing records, athlete, season, and meet pages use the boys'
+team spreadsheet. A Girls' Cross Country page is in place, but girls' data is
+not connected yet.
 
 ### How to run it on your own machine
 
