@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 from datetime import date
+from gallery import get_gallery_entries, upload_image
 from meet_import import (
     GROUPS,
     MAX_IMPORT_ROWS,
@@ -125,7 +126,7 @@ def check_password():
 
 if not st.session_state.authenticated:
     st.subheader("Sign in to continue")
-    st.caption("Admin controls are protected by the password in Streamlit secrets.")
+    st.caption("Admin controls are password protected.")
     check_password()
 else:
     st.markdown(
@@ -182,15 +183,33 @@ else:
     with st.container(border=True):
         st.subheader("News")
         st.caption("Publish updates that appear on the public News page.")
+        try:
+            news_images = get_gallery_entries()
+        except (KeyError, OSError, ValueError, requests.RequestException):
+            news_images = []
         with st.form("publish_news"):
             news_headline = st.text_input("Headline", max_chars=160)
             news_body = st.text_area("Story", max_chars=5000, height=140)
             news_date = st.date_input("Published date", value=date.today())
+            image_options = {"No image": None}
+            image_options.update(
+                {
+                    f"{entry['caption'] or entry['file_id']} · {entry['date_uploaded']}": entry
+                    for entry in news_images
+                    if entry["category"].casefold() == "news"
+                }
+            )
+            news_image_label = st.selectbox("Article image", list(image_options))
             publish_news = st.form_submit_button("Publish News")
 
         if publish_news:
             try:
-                add_news(news_headline, news_body, news_date.isoformat())
+                add_news(
+                    news_headline,
+                    news_body,
+                    news_date.isoformat(),
+                    image_options[news_image_label],
+                )
                 st.success("News item published.")
                 st.rerun()
             except ValueError as error:
@@ -212,10 +231,56 @@ else:
             st.info("No news items have been published.")
 
     with st.container(border=True):
+        st.subheader("Photo Uploads")
+        st.caption("Upload an image to the shared gallery for approved pages to use.")
+        with st.form("photo_upload"):
+            photo = st.file_uploader(
+                "Image file",
+                type=["jpg", "jpeg", "png", "webp"],
+                key="gallery_photo",
+            )
+            photo_category = st.selectbox(
+                "Use image for",
+                ["News", "Meet", "Home"],
+                key="gallery_category",
+            )
+            photo_related_key = st.text_input(
+                "Related headline or meet name (optional)",
+                key="gallery_related_key",
+            )
+            photo_caption = st.text_input("Caption (optional)", key="gallery_caption")
+            photo_credit = st.text_input(
+                "Photographer credit (optional)",
+                key="gallery_credit",
+            )
+            photo_alt = st.text_input("Accessibility description (optional)", key="gallery_alt")
+            photo_featured = st.checkbox("Feature on the home page", key="gallery_featured")
+            upload_submitted = st.form_submit_button("Upload Image")
+        if upload_submitted:
+            if not photo:
+                st.error("Choose an image first.")
+            else:
+                try:
+                    upload_image(
+                        photo.getvalue(),
+                        photo.name,
+                        photo_caption,
+                        photo_credit,
+                        photo_alt,
+                        photo_category,
+                        photo_related_key,
+                        photo_featured,
+                    )
+                    st.success("Image uploaded and added to the gallery.")
+                    st.rerun()
+                except (OSError, ValueError, requests.RequestException) as error:
+                    st.error(f"Could not upload image: {format_spreadsheet_error(error)}")
+
+    with st.container(border=True):
         st.subheader("Import Meet Results")
         st.warning(
-            "Imports never write directly to the live Google Sheet. Review and confirm "
-            "the rows, then download the approved workbook."
+            "Imports never write directly to the live records. Review and confirm "
+            "the rows, then download the approved file."
         )
         st.caption(
             "Times are stored as strings in MM:SS[.DDD]. Fractional zeroes are trimmed. "
@@ -355,7 +420,7 @@ else:
 
     if st.button(
         "Refresh Spreadsheet Data Now",
-        help="Clear Streamlit's cached data so the next page load fetches fresh spreadsheet data.",
+        help="Clear cached data so the next page load fetches fresh information.",
     ):
         st.cache_data.clear()
         st.success(

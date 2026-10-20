@@ -9,7 +9,6 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-    format_spreadsheet_error,
     get_spreadsheet_export_url,
     get_spreadsheet_id,
 )
@@ -96,21 +95,21 @@ st.title("Team Data")
 try:
     year_data = load_spreadsheet_years(get_spreadsheet_id())
 except requests.RequestException as error:
-    st.error(f"Could not access spreadsheet data: {format_spreadsheet_error(error)}")
+    st.error("Team information is temporarily unavailable.")
     st.stop()
 except InvalidFileException as error:
-    st.error(f"The spreadsheet export is not a valid Excel workbook: {error}")
+    st.error("Team information is temporarily unavailable.")
     st.stop()
 except (BadZipFile, OSError, ValueError, TypeError, KeyError, OverflowError) as error:
-    st.error(f"Could not read the spreadsheet workbook: {error}")
+    st.error("Team information is temporarily unavailable.")
     st.stop()
 
 for issue in year_data.get("issues", []):
-    st.warning(f"Skipped a year tab: {issue}")
+    st.warning("Some team information could not be loaded.")
 
 years = sorted(year_data["years"], reverse=True)
 if not years:
-    st.info("No year tabs using the expected spreadsheet format were found.")
+    st.info("No team information is available yet.")
     st.stop()
 
 filter_columns = st.columns(2)

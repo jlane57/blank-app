@@ -20,10 +20,7 @@ def get_optional_secret(name):
 report_url = get_optional_secret("BUG_REPORT_WEB_APP_URL")
 report_secret = get_optional_secret("BUG_REPORT_SECRET")
 if not report_url or not report_secret:
-    st.info(
-        "Bug reporting is not configured yet. Set "
-        "`BUG_REPORT_WEB_APP_URL` and `BUG_REPORT_SECRET` in Streamlit secrets."
-    )
+    st.info("Bug reporting is not configured yet. Ask an administrator to finish setup.")
 
 with st.form("bug_report_form", clear_on_submit=True):
     st.write("Anonymously submit a website error, bug, or time inaccuracy here.")

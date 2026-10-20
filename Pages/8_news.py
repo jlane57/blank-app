@@ -2,6 +2,7 @@ import html
 
 import streamlit as st
 
+from gallery import get_gallery_entries
 from news import get_news
 from site_status import stop_if_site_offline
 
@@ -72,10 +73,36 @@ entries = get_news()
 if not entries:
     st.info("No news has been posted yet. Check back soon.")
 else:
-    for entry in entries:
+    selected_index = st.session_state.get("selected_news")
+    if selected_index is not None and (
+        not isinstance(selected_index, int)
+        or selected_index < 0
+        or selected_index >= len(entries)
+    ):
+        st.session_state.selected_news = None
+        st.rerun()
+
+    if selected_index is not None:
+        if st.button("← Back to News"):
+            st.session_state.selected_news = None
+            st.rerun()
+        visible_entries = [entries[selected_index]]
+    else:
+        visible_entries = entries
+
+    for index, entry in enumerate(visible_entries):
+        image = entry.get("image") or {}
+        image_html = (
+            f'<img src="{html.escape(image.get("display_url", ""))}" '
+            f'alt="{html.escape(image.get("alt_text", entry["headline"]))}" '
+            'style="width:100%;max-height:420px;object-fit:cover;border-radius:0.5rem;margin-bottom:1rem;">'
+            if image.get("display_url")
+            else ""
+        )
         st.markdown(
             (
                 '<article class="news-card">'
+                f"{image_html}"
                 f'<div class="news-date">{html.escape(entry["published"])}</div>'
                 f'<h2>{html.escape(entry["headline"])}</h2>'
                 f'<p>{html.escape(entry["body"])}</p>'
@@ -83,3 +110,10 @@ else:
             ),
             unsafe_allow_html=True,
         )
+        if selected_index is None and st.button(
+            "Read article",
+            key=f"read_news_{index}",
+            width="stretch",
+        ):
+            st.session_state.selected_news = index
+            st.rerun()

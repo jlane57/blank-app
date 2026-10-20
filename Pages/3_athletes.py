@@ -12,7 +12,6 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-	format_spreadsheet_error,
 	get_spreadsheet_export_url,
 	get_spreadsheet_id,
 )
@@ -185,15 +184,15 @@ except (
 	OverflowError,
 	InvalidFileException,
 ) as error:
-	st.error(f"Could not load athlete rosters: {format_spreadsheet_error(error)}")
+	st.error("Athlete information is temporarily unavailable.")
 	st.stop()
 
 for issue in workbook_issues:
-	st.warning(f"Skipped a year tab: {issue}")
+	st.warning("Some athlete information could not be loaded.")
 
 years = sorted(rosters, reverse=True)
 if not years:
-	st.error("No yearly rosters were found in the spreadsheet.")
+	st.error("No athlete information is available yet.")
 	st.stop()
 
 latest_class_year = {}

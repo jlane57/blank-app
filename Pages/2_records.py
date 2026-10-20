@@ -7,7 +7,6 @@ import streamlit as st
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-    format_spreadsheet_error,
     get_spreadsheet_export_url,
     get_spreadsheet_id,
 )
@@ -74,7 +73,7 @@ try:
         BytesIO(load_workbook_bytes(get_spreadsheet_id()))
     )
 except (requests.RequestException, OSError, ValueError) as error:
-    st.error(f"Could not load all-time records: {format_spreadsheet_error(error)}")
+    st.error("All-time records are temporarily unavailable.")
     st.stop()
 
 individual_sheet = _find_sheet(
@@ -109,7 +108,7 @@ tabs = st.tabs([view[0] for view in record_views])
 for tab, (label, sheet_name, cell_range, row_limit) in zip(tabs, record_views):
     with tab:
         if sheet_name is None:
-            st.error(f"The workbook does not contain the sheet for {label.lower()} records.")
+            st.error(f"{label} records are temporarily unavailable.")
             continue
         try:
             records = _read_record_view(
@@ -119,15 +118,11 @@ for tab, (label, sheet_name, cell_range, row_limit) in zip(tabs, record_views):
                 row_limit,
             )
         except (OSError, ValueError) as error:
-            st.error(
-                f"Could not load {label.lower()} records: "
-                f"{format_spreadsheet_error(error)}"
-            )
+            st.error(f"{label} records are temporarily unavailable.")
             continue
         if records.empty:
             st.info(f"No {label.lower()} records are available.")
         else:
-            st.caption(f"Source: {sheet_name}")
             st.dataframe(
                 records,
                 hide_index=True,

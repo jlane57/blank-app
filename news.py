@@ -49,6 +49,7 @@ def save_news(entries):
                 "headline": headline[:MAX_HEADLINE_LENGTH],
                 "body": body[:MAX_BODY_LENGTH],
                 "published": published,
+                **({"image": entry["image"]} if isinstance(entry.get("image"), dict) else {}),
             }
         )
 
@@ -69,10 +70,12 @@ def save_news(entries):
             temp_path.unlink()
 
 
-def add_news(headline, body, published=None):
+def add_news(headline, body, published=None, image=None):
     entry = {
         "headline": str(headline).strip(),
         "body": str(body).strip(),
         "published": (published or date.today().isoformat()),
     }
+    if image:
+        entry["image"] = image
     save_news([entry, *get_news()])

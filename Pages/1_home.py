@@ -8,13 +8,24 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-    format_spreadsheet_error,
     get_spreadsheet_export_url,
     get_spreadsheet_id,
 )
 from spreadsheet_data import build_race_totals, parse_workbook_years
+from gallery import get_gallery_entries
 
 stop_if_site_offline()
+
+try:
+    featured_images = [
+        image
+        for image in get_gallery_entries()
+        if image["category"].casefold() == "home"
+        and image["featured"].casefold() == "true"
+        and image["approved"].casefold() != "false"
+    ][:6]
+except (KeyError, OSError, ValueError, requests.RequestException):
+    featured_images = []
 
 
 @st.cache_data(ttl=3600)
@@ -276,10 +287,23 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+if featured_images:
+    st.markdown("### Featured Photos")
+    photo_columns = st.columns(min(3, len(featured_images)))
+    for index, image in enumerate(featured_images):
+        with photo_columns[index % len(photo_columns)]:
+            st.image(
+                image["thumbnail_url"] or image["display_url"],
+                caption=image["caption"] or None,
+                use_container_width=True,
+            )
+            if image["photographer"]:
+                st.caption(f"Photo: {image['photographer']}")
+
 try:
     year_data = load_year_data(get_spreadsheet_id())
 except requests.RequestException as error:
-    st.error(f"Could not load homepage race totals: {format_spreadsheet_error(error)}")
+    st.error("Homepage information is temporarily unavailable.")
     totals = None
 except (
     BadZipFile,
@@ -290,7 +314,7 @@ except (
     OverflowError,
     InvalidFileException,
 ) as error:
-    st.error(f"Could not read homepage race totals: {error}")
+    st.error("Homepage information is temporarily unavailable.")
     totals = None
 else:
     for issue in year_data.get("issues", []):

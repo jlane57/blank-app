@@ -9,11 +9,11 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-    format_spreadsheet_error,
     get_spreadsheet_export_url,
     get_spreadsheet_id,
 )
 from spreadsheet_data import parse_workbook_years, sort_meets_by_date
+from gallery import get_gallery_entries
 from team_views import filter_results, randomized_team_order, TEAM_OPTIONS
 
 stop_if_site_offline()
@@ -119,20 +119,20 @@ def load_spreadsheet_years(spreadsheet_id):
 try:
     year_data = load_spreadsheet_years(get_spreadsheet_id())
 except requests.RequestException as error:
-    st.error(f"Could not access spreadsheet data: {format_spreadsheet_error(error)}")
+    st.error("Meet information is temporarily unavailable.")
     st.stop()
 except (BadZipFile, OSError, ValueError, TypeError, KeyError, OverflowError) as error:
-    st.error(f"Could not read the spreadsheet workbook: {error}")
+    st.error("Meet information is temporarily unavailable.")
     st.stop()
 except InvalidFileException as error:
-    st.error(f"The spreadsheet export is not a valid Excel workbook: {error}")
+    st.error("Meet information is temporarily unavailable.")
     st.stop()
 
 years = sorted(year_data["years"], reverse=True)
 for issue in year_data.get("issues", []):
-    st.warning(f"Skipped a year tab: {issue}")
+    st.warning("Some meet information could not be loaded.")
 if not years:
-    st.info("No year tabs using the expected spreadsheet format were found.")
+    st.info("No meet information is available yet.")
     st.stop()
 
 meets = []
@@ -147,7 +147,7 @@ for year in years:
         meets.append(meet)
 
 if not meets:
-    st.info("No meets were found in the year tabs.")
+    st.info("No meets are available yet.")
     st.stop()
 
 meets_by_year = {
@@ -258,6 +258,29 @@ if selected is not None:
             na_position="last",
         )
         st.table(results.drop(columns=["_seconds"]).reset_index(drop=True))
+
+    try:
+        meet_images = [
+            image
+            for image in get_gallery_entries()
+            if image["category"].casefold() == "meet"
+            and image["related_key"].casefold() == meet["name"].casefold()
+            and image["approved"].casefold() != "false"
+        ][:10]
+    except (KeyError, OSError, ValueError, requests.RequestException):
+        meet_images = []
+    if meet_images:
+        st.subheader("Meet Photos")
+        image_columns = st.columns(min(3, len(meet_images)))
+        for index, image in enumerate(meet_images):
+            with image_columns[index % len(image_columns)]:
+                st.image(
+                    image["thumbnail_url"] or image["display_url"],
+                    caption=image["caption"] or None,
+                    use_container_width=True,
+                )
+                if image["photographer"]:
+                    st.caption(f"Photo: {image['photographer']}")
 else:
     st.title("Event Database")
     search = st.text_input(

@@ -81,6 +81,27 @@ publication date. News is stored in the deployment's ignored
 [`news.json`](./news.json) file using atomic replacement, so publishing does
 not modify the spreadsheet.
 
+### Photos
+
+Administrators can upload images to Google Drive from the Admin Center. Add
+these secrets to enable uploads:
+
+```toml
+GOOGLE_SERVICE_ACCOUNT_JSON = "{...}"
+GOOGLE_DRIVE_FOLDER_ID = "your-drive-folder-id"
+```
+
+Share the Drive folder with the service-account email as an Editor. The
+service account must also have edit access to the spreadsheet. The app creates
+or updates the `Photo Gallery` tab with these columns:
+`file_id`, `display_url`, `thumbnail_url`, `caption`, `date_uploaded`,
+`category`, `related_key`, `photographer`, `alt_text`, `approved`, and
+`featured`.
+
+Approved public images remain in Drive; the spreadsheet stores metadata and
+links only. The app limits uploads to 10 MB and displays no more than six
+featured Home images or ten Meet images at a time.
+
 ### Dependency and deployment policy
 
 Runtime Python dependencies are pinned in both
