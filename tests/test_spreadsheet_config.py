@@ -6,6 +6,14 @@ import spreadsheet_config
 
 
 class SpreadsheetConfigTests(unittest.TestCase):
+    def test_spreadsheet_errors_redact_export_url(self):
+        self.assertEqual(
+            spreadsheet_config.format_spreadsheet_error(
+                "failed https://docs.google.com/spreadsheets/d/private-id/export"
+            ),
+            "failed https://docs.google.com/spreadsheets/d/[redacted]/export",
+        )
+
     def test_spreadsheet_export_url_uses_configured_id(self):
         self.assertEqual(
             spreadsheet_config.get_spreadsheet_export_url("configured-id"),

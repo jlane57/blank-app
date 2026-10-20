@@ -11,7 +11,11 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import (
+	format_spreadsheet_error,
+	get_spreadsheet_export_url,
+	get_spreadsheet_id,
+)
 from spreadsheet_data import (
 	build_athlete_5k_chart_data,
 	parse_meet_date,
@@ -181,7 +185,7 @@ except (
 	OverflowError,
 	InvalidFileException,
 ) as error:
-	st.error(f"Could not load athlete rosters: {error}")
+	st.error(f"Could not load athlete rosters: {format_spreadsheet_error(error)}")
 	st.stop()
 
 for issue in workbook_issues:
@@ -227,8 +231,15 @@ for entry in directory.values():
 
 selected = st.session_state.get("selected_athlete")
 if selected:
-	selected_name, selected_class_year = selected
-	selected_team = selected[2] if len(selected) > 2 else ""
+	if not isinstance(selected, (tuple, list)) or len(selected) not in (2, 3):
+		st.session_state.selected_athlete = None
+		st.rerun()
+
+	selected_name, selected_class_year = selected[:2]
+	selected_team = selected[2] if len(selected) == 3 else ""
+	if not isinstance(selected_name, str):
+		st.session_state.selected_athlete = None
+		st.rerun()
 	athlete = next(
 		(
 			item

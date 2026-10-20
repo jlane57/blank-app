@@ -10,7 +10,12 @@ from meet_import import (
     extract_rows,
     match_to_roster,
 )
-from spreadsheet_config import get_required_secret, get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import (
+    format_spreadsheet_error,
+    get_required_secret,
+    get_spreadsheet_export_url,
+    get_spreadsheet_id,
+)
 from spreadsheet_data import parse_workbook_years
 from spreadsheet_data import parse_race_time
 
@@ -222,7 +227,10 @@ else:
                         )
                         st.success("Approved workbook is ready to download.")
             except (requests.RequestException, ValueError, OSError) as error:
-                st.error(f"Could not prepare the import: {error}")
+                st.error(
+                    "Could not prepare the import: "
+                    f"{format_spreadsheet_error(error)}"
+                )
 
         boys_tab, girls_tab = st.tabs(["Boys import", "Girls import"])
         with boys_tab:

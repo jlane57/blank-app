@@ -6,7 +6,11 @@ import requests
 import streamlit as st
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import (
+    format_spreadsheet_error,
+    get_spreadsheet_export_url,
+    get_spreadsheet_id,
+)
 
 stop_if_site_offline()
 
@@ -70,7 +74,7 @@ try:
         BytesIO(load_workbook_bytes(get_spreadsheet_id()))
     )
 except (requests.RequestException, OSError, ValueError) as error:
-    st.error(f"Could not load all-time records: {error}")
+    st.error(f"Could not load all-time records: {format_spreadsheet_error(error)}")
     st.stop()
 
 individual_sheet = _find_sheet(
@@ -115,7 +119,10 @@ for tab, (label, sheet_name, cell_range, row_limit) in zip(tabs, record_views):
                 row_limit,
             )
         except (OSError, ValueError) as error:
-            st.error(f"Could not load {label.lower()} records: {error}")
+            st.error(
+                f"Could not load {label.lower()} records: "
+                f"{format_spreadsheet_error(error)}"
+            )
             continue
         if records.empty:
             st.info(f"No {label.lower()} records are available.")

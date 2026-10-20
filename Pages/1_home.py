@@ -7,7 +7,11 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import (
+    format_spreadsheet_error,
+    get_spreadsheet_export_url,
+    get_spreadsheet_id,
+)
 from spreadsheet_data import build_race_totals, parse_workbook_years
 
 stop_if_site_offline()
@@ -275,7 +279,7 @@ st.markdown(
 try:
     year_data = load_year_data(get_spreadsheet_id())
 except requests.RequestException as error:
-    st.error(f"Could not load homepage race totals: {error}")
+    st.error(f"Could not load homepage race totals: {format_spreadsheet_error(error)}")
     totals = None
 except (
     BadZipFile,

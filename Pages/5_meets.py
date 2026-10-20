@@ -8,7 +8,11 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import (
+    format_spreadsheet_error,
+    get_spreadsheet_export_url,
+    get_spreadsheet_id,
+)
 from spreadsheet_data import parse_workbook_years, sort_meets_by_date
 from team_views import filter_results, randomized_team_order, TEAM_OPTIONS
 
@@ -115,7 +119,7 @@ def load_spreadsheet_years(spreadsheet_id):
 try:
     year_data = load_spreadsheet_years(get_spreadsheet_id())
 except requests.RequestException as error:
-    st.error(f"Could not access spreadsheet data: {error}")
+    st.error(f"Could not access spreadsheet data: {format_spreadsheet_error(error)}")
     st.stop()
 except (BadZipFile, OSError, ValueError, TypeError, KeyError, OverflowError) as error:
     st.error(f"Could not read the spreadsheet workbook: {error}")

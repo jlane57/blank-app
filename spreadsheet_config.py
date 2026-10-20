@@ -30,6 +30,16 @@ def get_spreadsheet_export_url(spreadsheet_id):
     return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/export"
 
 
+def format_spreadsheet_error(error):
+    """Remove spreadsheet identifiers from errors shown in the UI."""
+    message = str(error)
+    return re.sub(
+        r"(https://docs\.google\.com/spreadsheets/d/)[^/\s]+",
+        r"\1[redacted]",
+        message,
+    )
+
+
 def _column_index(cell_reference):
     match = re.match(r"([A-Z]+)", cell_reference or "")
     if not match:

@@ -8,7 +8,11 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import (
+    format_spreadsheet_error,
+    get_spreadsheet_export_url,
+    get_spreadsheet_id,
+)
 from spreadsheet_data import (
     build_athlete_5k_chart_data,
     build_postseason_roster,
@@ -91,7 +95,7 @@ st.title("Data by Season")
 try:
     year_data = load_spreadsheet_years(get_spreadsheet_id())
 except requests.RequestException as error:
-    st.error(f"Could not access spreadsheet data: {error}")
+    st.error(f"Could not access spreadsheet data: {format_spreadsheet_error(error)}")
     st.stop()
 except InvalidFileException as error:
     st.error(f"The spreadsheet export is not a valid Excel workbook: {error}")
