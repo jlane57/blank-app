@@ -11,13 +11,16 @@ from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
 stop_if_site_offline()
 
 INDIVIDUAL_SHEET_CANDIDATES = (
+    "Athlete Records",
     "Top 50 All-Time Individual PRs",
     "Top 50 All Time Athletes",
 )
 TEAM_SHEET_CANDIDATES = (
+    "Team Records",
     "Top 5 Team Average",
     "Top 10 All Time Teams",
 )
+COURSE_SHEET_CANDIDATES = ("Amp Records",)
 
 
 @st.cache_data(ttl=3600)
@@ -86,6 +89,16 @@ record_views = (
     ("Girls Individual", individual_sheet, "H:N", 50),
     ("Boys Team", team_sheet, "A:F", 10),
     ("Girls Team", team_sheet, "G:L", 10),
+    ("Boys Amphitheater", _find_sheet(
+        workbook.sheet_names,
+        COURSE_SHEET_CANDIDATES,
+        ("amp", "record"),
+    ), "A:F", 100),
+    ("Girls Amphitheater", _find_sheet(
+        workbook.sheet_names,
+        COURSE_SHEET_CANDIDATES,
+        ("amp", "record"),
+    ), "G:L", 100),
 )
 
 tabs = st.tabs([view[0] for view in record_views])

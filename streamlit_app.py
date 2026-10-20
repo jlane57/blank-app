@@ -26,6 +26,19 @@ st.markdown(
         overflow-wrap: anywhere;
     }
 
+    @media (min-width: 769px) {
+        body:has([data-testid="stSidebar"][aria-expanded="true"]) .site-wide-banner {
+            width: calc(100vw - 21rem);
+            margin-left: 0;
+        }
+
+        body:has([data-testid="stSidebar"][aria-expanded="true"]):has(.home-hero)
+        .site-wide-banner {
+            margin-top: 0;
+            margin-left: 21rem;
+        }
+    }
+
     .stApp {
         color: #102A43;
         background:

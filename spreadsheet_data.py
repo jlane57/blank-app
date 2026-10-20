@@ -10,7 +10,6 @@ import openpyxl
 from openpyxl.utils.datetime import from_excel
 
 PLACEHOLDERS = {"", "n/a", "na", "---", "--", "-", "—", "–", "dnr", "dnf", "dq"}
-MEET_COLUMNS = range(3, 26)
 
 
 def display_text(value):
@@ -429,7 +428,7 @@ def find_year_sheet_layout(rows):
                     break
         return labels
 
-    preceding_rows = range(max(0, header_row - 5), header_row)
+    preceding_rows = range(0, header_row)
     following_rows = range(header_row + 1, min(len(rows), header_row + 6))
     preceding_labels = labels_in(preceding_rows)
     following_labels = labels_in(following_rows)
@@ -487,7 +486,7 @@ def parse_year_sheet(rows, year, bold_cells=None):
 
     meet_columns = [
         column
-        for column in MEET_COLUMNS
+        for column in range(3, max((len(row) for row in rows), default=3))
         if display_text(row_value(rows, layout["header_row"], column)).strip()
     ]
     meets = []
@@ -598,7 +597,7 @@ def parse_year_sheet(rows, year, bold_cells=None):
 
 
 def parse_workbook_years(workbook_data):
-    """Load year tabs in the 2026 layout and report tabs that could not be parsed."""
+    """Load shared-team year tabs and report tabs that could not be parsed."""
     workbook = openpyxl.load_workbook(
         BytesIO(workbook_data),
         read_only=True,

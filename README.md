@@ -1,9 +1,8 @@
 # Harrison Cross Country
 
 Streamlit site for Harrison Cross Country team records, athlete results, and
-meet data. The existing records, athlete, season, and meet pages use the boys'
-team spreadsheet. A Girls' Cross Country page is in place, but girls' data is
-not connected yet.
+meet data. The records, athlete, season, and meet pages use the shared boys'
+and girls' team spreadsheet.
 
 ### How to run it on your own machine
 
@@ -123,14 +122,21 @@ Submissions are sent by the Streamlit server, not directly by the visitor's
 browser. They are protected in transit by HTTPS and stored in the private Sheet;
 this is not end-to-end encryption.
 
+### Workbook structure
+
+The records page reads the `Athlete Records`, `Team Records`, and `Amp Records`
+tabs. Each record tab contains boys' data in the left block and girls' data in
+the right block.
+
 ### Year-tab structure
 
 All four-digit year tabs use the current shared-team layout:
 
 - Rows above the athlete header contain race type, location, date, notes, boys'
-  place, and girls' place. The header row has `Name`, `Grade`, and `Team` in
-  columns A:C, with meet names beginning in column D. Athlete rows start
-  immediately below the header.
+  place, and girls' place. Additional title or coaches rows may appear before
+  this metadata. The header row has `Name`, `Grade`, and `Team` in columns
+  A:C, with meet names beginning in column D. Athlete rows start immediately
+  below the header.
 - `Team` is `B` for boys or `G` for girls. This shared roster powers the Boys
   Varsity, Boys JV, Girls Varsity, and Girls JV views without separate tabs.
 - Each meet's results are in its corresponding meet column.

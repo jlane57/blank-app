@@ -126,6 +126,35 @@ class SpreadsheetDataTests(unittest.TestCase):
         self.assertTrue(parsed["athletes"][0]["is_postseason"])
         self.assertEqual(parsed["results"][0]["result"], "16:25")
 
+    def test_template_layout_reads_metadata_after_title_and_coaches_rows(self):
+        rows = [
+            ["HHS Cross Country Data 2026"],
+            [None, "< Boys Coaches (Separated by commas, head coach first)"],
+            [None, None, "Race Type >", "4k", "5k"],
+            [None, None, "Location >", "Brownsburg", "Amp"],
+            [None, None, "Date >", date(2026, 8, 22), date(2026, 8, 25)],
+            [None, None, "Meet Notes >", "Check back soon", "Times are rounded"],
+            [None, None, "Boys Place >", None, "1st"],
+            [None, None, "Girls Place >", "3rd", "1st"],
+            ["Name", "Grade", "Team", "Brownsburg 4k", "Champ at the Amp"],
+            ["Runner Boy", 12, "B", None, "16:19.00"],
+            ["Runner Girl", 11, "G", None, "18:10.00"],
+        ]
+
+        parsed = parse_year_sheet(rows, 2026, set())
+
+        self.assertIsNotNone(parsed)
+        assert parsed is not None
+        self.assertEqual(parsed["layout"]["meet_type_row"], 2)
+        self.assertEqual(parsed["layout"]["location_row"], 3)
+        self.assertEqual(parsed["layout"]["date_row"], 4)
+        self.assertEqual(parsed["layout"]["notes_row"], 5)
+        self.assertEqual(parsed["layout"]["boys_place_row"], 6)
+        self.assertEqual(parsed["layout"]["girls_place_row"], 7)
+        self.assertEqual(parsed["meets"][1]["type"], "5k")
+        self.assertTrue(parsed["results"][0]["is_5k"])
+        self.assertEqual(parsed["meets"][1]["girls_place"], "1st")
+
     def test_current_layout_reads_team_and_gender_places(self):
         rows = [
             ["HHS Cross Country Data 2026"],
