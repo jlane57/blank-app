@@ -286,19 +286,8 @@ if selected:
 		personal_record_label = "No 5K result"
 
 	team_label = "Girls" if athlete.get("team", "").upper() == "G" else "Boys"
-	roster_year = next(
-		(
-			year
-			for year in years
-			if any(
-				item is athlete
-				for item in rosters[year]
-			)
-		),
-		None,
-	)
 	st.title(athlete["name"])
-	st.caption(f"{roster_year} {team_label}" if roster_year else team_label)
+	st.caption(f"{team_label} Team")
 	class_label = f"Class of {athlete['class_year']}" if athlete["class_year"] else "Unknown"
 	class_column, pr_column = st.columns(2)
 	class_column.metric("Class", class_label)
@@ -388,7 +377,6 @@ if selected:
 						{
 							"Meet": result["meet"],
 							"Type": result["type"],
-							"Team": result.get("team", ""),
 							"Time": result["result"],
 						}
 						for result in athlete_results

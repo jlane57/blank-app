@@ -159,6 +159,8 @@ meets_by_year = {
 
 if "selected_meet" not in st.session_state:
     st.session_state.selected_meet = None
+if "selected_meet_team_order" not in st.session_state:
+    st.session_state.selected_meet_team_order = None
 
 selected = st.session_state.selected_meet
 
@@ -168,6 +170,7 @@ if selected is not None:
         selected_column = int(selected[1])
     except (TypeError, ValueError, IndexError):
         st.session_state.selected_meet = None
+        st.session_state.selected_meet_team_order = None
         st.rerun()
 
     meet = next(
@@ -180,10 +183,16 @@ if selected is not None:
     )
     if meet is None:
         st.session_state.selected_meet = None
+        st.session_state.selected_meet_team_order = None
         st.rerun()
 
     if st.button("← Back to All Meets"):
+        st.session_state.pop(
+            f"meet_division_{meet['year']}_{meet['column']}",
+            None,
+        )
         st.session_state.selected_meet = None
+        st.session_state.selected_meet_team_order = None
         st.rerun()
 
     st.subheader(f"{meet['name']} ({meet['year']})")
@@ -216,13 +225,17 @@ if selected is not None:
     if results.empty:
         st.info("No athlete results were recorded for this meet.")
     else:
-        selections = randomized_team_order()
+        selections = st.session_state.selected_meet_team_order
+        if not selections:
+            selections = randomized_team_order()
+            st.session_state.selected_meet_team_order = selections
         division = st.radio(
                 "Show Results",
                 selections,
                 horizontal=True,
                 label_visibility="collapsed",
                 key=f"meet_division_{meet['year']}_{meet['column']}",
+                index=0,
                 format_func=lambda selection: TEAM_OPTIONS[selection][2],
             )
         selected_results = filter_results(meet["results"], division)
@@ -266,6 +279,11 @@ else:
                     width="stretch",
                 ):
                     st.session_state.selected_meet = key
+                    st.session_state.selected_meet_team_order = randomized_team_order()
+                    st.session_state.pop(
+                        f"meet_division_{meet['year']}_{meet['column']}",
+                        None,
+                    )
                     st.rerun()
         else:
             st.info("No meets match that search.")
@@ -281,4 +299,9 @@ else:
                 width="stretch",
             ):
                 st.session_state.selected_meet = key
+                st.session_state.selected_meet_team_order = randomized_team_order()
+                st.session_state.pop(
+                    f"meet_division_{meet['year']}_{meet['column']}",
+                    None,
+                )
                 st.rerun()

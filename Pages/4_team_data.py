@@ -45,6 +45,7 @@ def _build_runner_5k_index(years):
                         "year": year,
                         "column": result["column"],
                         "name": athlete["name"],
+                        "team": athlete.get("team", "").upper(),
                         "meet": result["meet"],
                         "date": result["date"],
                         "raw_date": result.get("raw_date"),
@@ -90,7 +91,7 @@ def load_spreadsheet_years(spreadsheet_id):
     }
 
 
-st.title("Data by Season")
+st.title("Team Data")
 
 try:
     year_data = load_spreadsheet_years(get_spreadsheet_id())
@@ -112,8 +113,27 @@ if not years:
     st.info("No year tabs using the expected spreadsheet format were found.")
     st.stop()
 
-selected_year = st.selectbox("Season", years)
+filter_columns = st.columns(2)
+selected_year = filter_columns[0].selectbox("Year", years)
 season = year_data["years"][selected_year]
+available_teams = tuple(
+    team
+    for team in ("B", "G")
+    if any(
+        athlete.get("team", "").upper() == team
+        for athlete in season["athletes"]
+    )
+)
+team_options = available_teams or ("ALL",)
+selected_team = filter_columns[1].selectbox(
+    "Team",
+    options=team_options,
+    format_func=lambda team: {
+        "B": "Boys Team",
+        "G": "Girls Team",
+        "ALL": "All Teams",
+    }[team],
+)
 runner_5k_index = year_data["runner_5k_index"]
 
 st.subheader(f"{selected_year} Meets")
@@ -148,7 +168,13 @@ else:
 all_athletes = [
     athlete["name"]
     for athlete in season["athletes"]
-    if athlete.get("name")
+    if (
+        athlete.get("name")
+        and (
+            selected_team == "ALL"
+            or athlete.get("team", "").upper() == selected_team
+        )
+    )
 ]
 unique_athletes = []
 seen_athletes = set()
@@ -161,7 +187,14 @@ for athlete_name in all_athletes:
 postseason_athletes = [
     athlete["name"]
     for athlete in season["athletes"]
-    if athlete.get("is_postseason") and athlete.get("name")
+    if (
+        athlete.get("is_postseason")
+        and athlete.get("name")
+        and (
+            selected_team == "ALL"
+            or athlete.get("team", "").upper() == selected_team
+        )
+    )
 ]
 
 all_roster_rows = build_postseason_roster(
@@ -188,7 +221,11 @@ else:
     candidate_names = postseason_athletes or unique_athletes
     candidate_stats = []
     for athlete_name in candidate_names:
-        history = runner_5k_index.get(athlete_name.casefold(), [])
+        history = [
+            result
+            for result in runner_5k_index.get(athlete_name.casefold(), [])
+            if selected_team == "ALL" or result.get("team") == selected_team
+        ]
         if not history:
             continue
         candidate_stats.append((athlete_name, min(item["seconds"] for item in history)))
@@ -208,7 +245,22 @@ else:
 roster_rows = [
     row
     for row in all_roster_rows
-    if row["Athlete"].casefold() in {name.casefold() for name in selected_runner_names}
+    if (
+        row["Athlete"].casefold()
+        in {name.casefold() for name in selected_runner_names}
+        and (
+            selected_team == "ALL"
+            or next(
+                (
+                    runner.get("team", "").upper()
+                    for runner in season["athletes"]
+                    if runner["name"].casefold() == row["Athlete"].casefold()
+                ),
+                "",
+            )
+            == selected_team
+        )
+    )
 ]
 if roster_rows:
     roster_table_rows = [
@@ -252,7 +304,13 @@ for athlete_name in chart_runner_names:
     history = [
         result
         for result in runner_5k_index.get(athlete_name.casefold(), [])
-        if result["year"] == selected_year
+        if (
+            result["year"] == selected_year
+            and (
+                selected_team == "ALL"
+                or result.get("team") == selected_team
+            )
+        )
     ]
     if history:
         season_history.append((athlete_name, history))

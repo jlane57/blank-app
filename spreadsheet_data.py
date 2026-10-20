@@ -422,7 +422,7 @@ def find_year_sheet_layout(rows):
         for row_index in rows_to_check:
             for column_index in range(3):
                 label = display_text(row_value(rows, row_index, column_index))
-                label = re.sub(r"\s*[>:]+\s*$", "", label).strip().casefold()
+                label = re.sub(r"\s*(?:>|:)+\s*$", "", label).strip().casefold()
                 if label in metadata_labels:
                     labels[metadata_labels[label]] = row_index
                     break

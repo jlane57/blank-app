@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+from datetime import date
 from meet_import import (
     GROUPS,
     MAX_IMPORT_ROWS,
@@ -10,6 +11,7 @@ from meet_import import (
     extract_rows,
     match_to_roster,
 )
+from news import add_news, get_news, save_news
 from spreadsheet_config import (
     format_spreadsheet_error,
     get_required_secret,
@@ -25,7 +27,81 @@ from site_status import (
     save_site_status,
 )
 
-st.title("Admin Portal")
+st.markdown(
+    """
+    <style>
+    .admin-kicker {
+        margin: -0.5rem 0 0.35rem;
+        color: #B94E00;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .admin-intro {
+        margin: 0 0 1.25rem;
+        color: rgba(16, 42, 67, 0.78);
+        font-size: 1rem;
+    }
+
+    .admin-status {
+        display: inline-block;
+        margin: 0.25rem 0 1rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: #E8F1F8;
+        color: #102A43;
+        font-size: 0.82rem;
+        font-weight: 800;
+    }
+
+    [data-testid="stForm"] {
+        border-color: rgba(25, 57, 84, 0.2);
+        border-top: 4px solid #F58220;
+        background: rgba(255, 248, 239, 0.5);
+    }
+
+    [data-testid="stExpander"] {
+        border-color: rgba(25, 57, 84, 0.22);
+        background: rgba(232, 241, 248, 0.38);
+    }
+
+    div.stButton > button,
+    [data-testid="stFormSubmitButton"] button {
+        border: 1px solid #F58220;
+        background: #F58220;
+        color: #102A43;
+        font-weight: 800;
+    }
+
+    div.stButton > button:hover,
+    [data-testid="stFormSubmitButton"] button:hover {
+        border-color: #B94E00;
+        background: #FFB15C;
+        color: #102A43;
+    }
+
+    [data-testid="stTabs"] button[aria-selected="true"] {
+        color: #102A43;
+        border-bottom-color: #F58220;
+    }
+
+    [data-testid="stFileUploaderDropzone"] {
+        border: 2px dashed rgba(245, 130, 32, 0.65);
+        background: rgba(255, 248, 239, 0.55);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown('<div class="admin-kicker">Restricted workspace</div>', unsafe_allow_html=True)
+st.title("Admin Center")
+st.markdown(
+    '<p class="admin-intro">Manage site availability, announcements, and reviewed meet imports.</p>',
+    unsafe_allow_html=True,
+)
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -48,16 +124,23 @@ def check_password():
 
 
 if not st.session_state.authenticated:
-    st.subheader("Please Enter the Admin Password")
+    st.subheader("Sign in to continue")
+    st.caption("Admin controls are protected by the password in Streamlit secrets.")
     check_password()
 else:
-    st.success("Access granted")
-    st.write("Welcome, Admin!")
+    st.markdown(
+        '<div class="admin-status">● Signed in · Admin access active</div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Sign Out", key="admin_sign_out"):
+        st.session_state.authenticated = False
+        st.rerun()
 
     current = get_site_status()
 
     with st.container(border=True):
         st.subheader("Website Availability")
+        st.caption("Control whether visitors can access the public site.")
 
         with st.form("website_availability"):
             enabled = st.toggle(
@@ -95,6 +178,38 @@ else:
                 st.success("Website settings saved.")
             except OSError as error:
                 st.error(f"Could not save website settings: {error}")
+
+    with st.container(border=True):
+        st.subheader("News")
+        st.caption("Publish updates that appear on the public News page.")
+        with st.form("publish_news"):
+            news_headline = st.text_input("Headline", max_chars=160)
+            news_body = st.text_area("Story", max_chars=5000, height=140)
+            news_date = st.date_input("Published date", value=date.today())
+            publish_news = st.form_submit_button("Publish News")
+
+        if publish_news:
+            try:
+                add_news(news_headline, news_body, news_date.isoformat())
+                st.success("News item published.")
+                st.rerun()
+            except ValueError as error:
+                st.error(str(error))
+
+        current_news = get_news()
+        if current_news:
+            st.caption(f"{len(current_news)} published item(s)")
+            for index, entry in enumerate(current_news):
+                with st.expander(f"{entry['headline']} · {entry['published']}"):
+                    st.write(entry["body"])
+                    if st.button("Delete", key=f"delete_news_{index}"):
+                        save_news(
+                            current_news[:index] + current_news[index + 1 :]
+                        )
+                        st.success("News item deleted.")
+                        st.rerun()
+        else:
+            st.info("No news items have been published.")
 
     with st.container(border=True):
         st.subheader("Import Meet Results")

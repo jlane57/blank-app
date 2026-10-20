@@ -152,6 +152,7 @@ class SpreadsheetDataTests(unittest.TestCase):
         self.assertEqual(parsed["layout"]["boys_place_row"], 6)
         self.assertEqual(parsed["layout"]["girls_place_row"], 7)
         self.assertEqual(parsed["meets"][1]["type"], "5k")
+        self.assertEqual(parsed["meets"][1]["location"], "Amp")
         self.assertTrue(parsed["results"][0]["is_5k"])
         self.assertEqual(parsed["meets"][1]["girls_place"], "1st")
 

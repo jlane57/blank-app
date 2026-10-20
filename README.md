@@ -73,6 +73,14 @@ does not automatically re-enable itself. The site-wide banner follows the same
 rule: its enabled state and message remain unchanged until an administrator
 saves new settings. Legacy status files migrate safely with the banner disabled.
 
+### News
+
+The public **News** page displays team updates. Administrators can publish and
+delete entries from the Admin Center; each entry has a headline, body, and
+publication date. News is stored in the deployment's ignored
+[`news.json`](./news.json) file using atomic replacement, so publishing does
+not modify the spreadsheet.
+
 ### Dependency and deployment policy
 
 Runtime Python dependencies are pinned in both

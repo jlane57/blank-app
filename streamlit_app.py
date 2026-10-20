@@ -357,8 +357,9 @@ render_site_banner()
 HOMEPAGE = st.Page("Pages/1_home.py", title="Home", icon="🏠", default=True)
 RECORDSPAGE = st.Page("Pages/2_records.py", title="All-Time Records", icon="🏆")
 ATHLETESPAGE = st.Page("Pages/3_athletes.py", title="Athlete Directory", icon="🏃")
-YEARSPAGE = st.Page("Pages/4_season_overview.py", title="Data by Season", icon="🗓")
+YEARSPAGE = st.Page("Pages/4_team_data.py", title="Team Data", icon="🗓")
 EVENTSPAGE = st.Page("Pages/5_meets.py", title="Meets & Events", icon="🏅")
+NEWSPAGE = st.Page("Pages/8_news.py", title="News", icon="📰")
 ADMINPAGE = st.Page("Pages/6_admin.py", title="Admin Access", icon="🔑", visibility="hidden")
 BUGREPORTPAGE = st.Page(
     "Pages/7_report_a_bug.py",
@@ -375,6 +376,7 @@ st.sidebar.page_link(RECORDSPAGE)
 st.sidebar.page_link(ATHLETESPAGE)
 st.sidebar.page_link(YEARSPAGE)
 st.sidebar.page_link(EVENTSPAGE)
+st.sidebar.page_link(NEWSPAGE)
 st.sidebar.markdown("---")
 st.sidebar.page_link(BUGREPORTPAGE)
 st.sidebar.page_link(ADMINPAGE)
@@ -386,6 +388,7 @@ pg = st.navigation(
         ATHLETESPAGE,
         YEARSPAGE,
         EVENTSPAGE,
+        NEWSPAGE,
         BUGREPORTPAGE,
         ADMINPAGE,
     ],
