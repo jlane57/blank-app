@@ -264,7 +264,7 @@ if selected is not None:
             image
             for image in get_gallery_entries()
             if image["category"].casefold() == "meet"
-            and image["related_key"].casefold() == meet["name"].casefold()
+            and image["related_key"] == f"meet:{meet['year']}:{meet['column']}"
             and image["approved"].casefold() != "false"
         ][:10]
     except (KeyError, OSError, ValueError, requests.RequestException):

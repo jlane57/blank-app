@@ -124,6 +124,34 @@ def check_password():
             st.error("Access denied")
 
 
+@st.cache_data(ttl=3600)
+def load_image_destinations(spreadsheet_id):
+    response = requests.get(
+        get_spreadsheet_export_url(spreadsheet_id),
+        params={"format": "xlsx"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    workbook = parse_workbook_years(response.content)["years"]
+    meets = []
+    athletes = {}
+    for year, season in workbook.items():
+        for meet in season["meets"]:
+            meets.append(
+                (
+                    f"{meet['name']} ({year})",
+                    f"meet:{year}:{meet['column']}",
+                )
+            )
+        for athlete in season["athletes"]:
+            key = athlete["name"].casefold()
+            athletes[key] = athlete["name"]
+    return sorted(meets), sorted(
+        ((name, f"athlete:{key}") for key, name in athletes.items()),
+        key=lambda item: item[0].casefold(),
+    )
+
+
 if not st.session_state.authenticated:
     st.subheader("Sign in to continue")
     st.caption("Admin controls are password protected.")
@@ -137,9 +165,42 @@ else:
         st.session_state.authenticated = False
         st.rerun()
 
+    section_labels = {
+        "availability": "Website Availability",
+        "news": "News",
+        "photos": "Photo Uploads",
+        "imports": "Import Meet Results",
+    }
+    if "admin_section" not in st.session_state:
+        st.session_state.admin_section = "availability"
+
+    st.subheader("Admin Tools")
+    section_columns = st.columns(len(section_labels))
+    for column, (section_key, section_label) in zip(
+        section_columns, section_labels.items()
+    ):
+        with column:
+            button_label = (
+                f"Open {section_label}"
+                if st.session_state.admin_section != section_key
+                else f"Viewing {section_label}"
+            )
+            if st.button(
+                button_label,
+                key=f"open_admin_{section_key}",
+                disabled=st.session_state.admin_section == section_key,
+                use_container_width=True,
+            ):
+                st.session_state.admin_section = section_key
+                st.rerun()
+
+    st.divider()
     current = get_site_status()
 
-    with st.container(border=True):
+    with st.expander(
+        "Website Availability",
+        expanded=st.session_state.admin_section == "availability",
+    ):
         st.subheader("Website Availability")
         st.caption("Control whether visitors can access the public site.")
 
@@ -180,7 +241,10 @@ else:
             except OSError as error:
                 st.error(f"Could not save website settings: {error}")
 
-    with st.container(border=True):
+    with st.expander(
+        "News",
+        expanded=st.session_state.admin_section == "news",
+    ):
         st.subheader("News")
         st.caption("Publish updates that appear on the public News page.")
         try:
@@ -230,53 +294,90 @@ else:
         else:
             st.info("No news items have been published.")
 
-    with st.container(border=True):
+    with st.expander(
+        "Photo Uploads",
+        expanded=st.session_state.admin_section == "photos",
+    ):
         st.subheader("Photo Uploads")
-        st.caption("Upload an image to the shared gallery for approved pages to use.")
+        st.caption("Choose exactly where each uploaded image should appear.")
+        try:
+            meet_destinations, athlete_destinations = load_image_destinations(
+                get_spreadsheet_id()
+            )
+        except (OSError, ValueError, KeyError, requests.RequestException):
+            meet_destinations, athlete_destinations = [], []
         with st.form("photo_upload"):
             photo = st.file_uploader(
-                "Image file",
-                type=["jpg", "jpeg", "png", "webp"],
+                "Image files",
+                type=["jpg", "jpeg", "png", "webp", "gif"],
+                accept_multiple_files=True,
                 key="gallery_photo",
             )
             photo_category = st.selectbox(
                 "Use image for",
-                ["News", "Meet", "Home"],
+                ["Home page", "Specific meet", "Specific athlete"],
                 key="gallery_category",
             )
-            photo_related_key = st.text_input(
-                "Related headline or meet name (optional)",
-                key="gallery_related_key",
-            )
+            destination_options = [("Home page", "home")]
+            if photo_category == "Specific meet":
+                destination_options = meet_destinations
+            elif photo_category == "Specific athlete":
+                destination_options = athlete_destinations
+            if destination_options:
+                destination_labels = [label for label, _ in destination_options]
+                destination_label = st.selectbox(
+                    "Choose the destination",
+                    destination_labels,
+                    key="gallery_destination",
+                )
+                destination_key = dict(destination_options)[destination_label]
+            else:
+                destination_key = ""
+                st.warning("No destinations are currently available.")
             photo_caption = st.text_input("Caption (optional)", key="gallery_caption")
             photo_credit = st.text_input(
                 "Photographer credit (optional)",
                 key="gallery_credit",
             )
             photo_alt = st.text_input("Accessibility description (optional)", key="gallery_alt")
-            photo_featured = st.checkbox("Feature on the home page", key="gallery_featured")
+            photo_featured = st.checkbox(
+                "Feature on the home page",
+                disabled=photo_category != "Home page",
+                key="gallery_featured",
+            )
             upload_submitted = st.form_submit_button("Upload Image")
         if upload_submitted:
             if not photo:
                 st.error("Choose an image first.")
+            elif not destination_key:
+                st.error("Choose a valid destination first.")
             else:
                 try:
-                    upload_image(
-                        photo.getvalue(),
-                        photo.name,
-                        photo_caption,
-                        photo_credit,
-                        photo_alt,
-                        photo_category,
-                        photo_related_key,
-                        photo_featured,
-                    )
-                    st.success("Image uploaded and added to the gallery.")
+                    category = {
+                        "Home page": "Home",
+                        "Specific meet": "Meet",
+                        "Specific athlete": "Athlete",
+                    }[photo_category]
+                    for uploaded_photo in photo:
+                        upload_image(
+                            uploaded_photo.getvalue(),
+                            uploaded_photo.name,
+                            photo_caption,
+                            photo_credit,
+                            photo_alt,
+                            category,
+                            destination_key,
+                            photo_featured,
+                        )
+                    st.success(f"{len(photo)} image(s) uploaded and assigned.")
                     st.rerun()
                 except (OSError, ValueError, requests.RequestException) as error:
                     st.error(f"Could not upload image: {format_spreadsheet_error(error)}")
 
-    with st.container(border=True):
+    with st.expander(
+        "Import Meet Results",
+        expanded=st.session_state.admin_section == "imports",
+    ):
         st.subheader("Import Meet Results")
         st.warning(
             "Imports never write directly to the live records. Review and confirm "

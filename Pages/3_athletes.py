@@ -20,6 +20,7 @@ from spreadsheet_data import (
 	parse_meet_date,
 	parse_workbook_years,
 )
+from gallery import get_gallery_entries
 
 stop_if_site_offline()
 
@@ -287,6 +288,25 @@ if selected:
 	team_label = "Girls" if athlete.get("team", "").upper() == "G" else "Boys"
 	st.title(athlete["name"])
 	st.caption(f"{team_label} Team")
+	try:
+		athlete_images = [
+			image
+			for image in get_gallery_entries()
+			if image["category"].casefold() == "athlete"
+			and image["related_key"] == f"athlete:{selected_name}"
+			and image["approved"].casefold() != "false"
+		][:6]
+	except (KeyError, OSError, ValueError, requests.RequestException):
+		athlete_images = []
+	if athlete_images:
+		image_columns = st.columns(min(3, len(athlete_images)))
+		for index, image in enumerate(athlete_images):
+			with image_columns[index % len(image_columns)]:
+				st.image(
+					image["thumbnail_url"] or image["display_url"],
+					caption=image["caption"] or None,
+					use_container_width=True,
+				)
 	class_label = f"Class of {athlete['class_year']}" if athlete["class_year"] else "Unknown"
 	class_column, pr_column = st.columns(2)
 	class_column.metric("Class", class_label)

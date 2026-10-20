@@ -21,6 +21,7 @@ try:
         image
         for image in get_gallery_entries()
         if image["category"].casefold() == "home"
+        and image["related_key"] == "home"
         and image["featured"].casefold() == "true"
         and image["approved"].casefold() != "false"
     ][:6]
