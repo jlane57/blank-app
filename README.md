@@ -74,6 +74,24 @@ does not automatically re-enable itself. The site-wide banner follows the same
 rule: its enabled state and message remain unchanged until an administrator
 saves new settings. Legacy status files migrate safely with the banner disabled.
 
+### Dependency and deployment policy
+
+Runtime Python dependencies are pinned in both
+[`pyproject.toml`](./pyproject.toml) and
+[`Pages/requirements.txt`](./Pages/requirements.txt), with resolved hashes and
+transitive versions recorded in [`uv.lock`](./uv.lock). Deployments use
+`uv sync --locked` so an unattended dependency upgrade cannot change behavior.
+The dev container installs only the explicitly listed Tesseract package; it
+does not run a broad operating-system upgrade.
+
+The project uses established, documented libraries: Streamlit for the UI,
+Pandas/openpyxl for workbook data, Plotly for charts, pypdf for text-based PDF
+extraction, Requests for HTTPS, and pytesseract as the Python wrapper for the
+Tesseract OCR executable. External services and OCR can still fail, so the app
+surfaces errors and refuses to generate an approved import when extraction is
+uncertain. No software can be guaranteed never to break; pinned dependencies,
+tests, and explicit failure paths reduce that risk.
+
 ### Anonymous bug reports
 
 The **Report a Bug** sidebar page is public, does not ask for an identity, and sends reports

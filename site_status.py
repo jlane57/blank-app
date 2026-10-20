@@ -1,4 +1,5 @@
 import json
+from html import escape
 import os
 import tempfile
 from pathlib import Path
@@ -71,7 +72,14 @@ def save_site_status(
 def render_site_banner():
     status = get_site_status()
     if status["banner_enabled"]:
-        st.info(status["banner_message"])
+        st.markdown(
+            (
+                '<div class="site-wide-banner" role="status">'
+                f"{escape(status['banner_message'])}"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 def stop_if_site_offline():

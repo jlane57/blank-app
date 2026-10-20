@@ -6,11 +6,26 @@ st.set_page_config(
     page_icon="🏃",
 )
 
-render_site_banner()
-
 st.markdown(
     """
     <style>
+    .site-wide-banner {
+        position: relative;
+        z-index: 1000;
+        box-sizing: border-box;
+        width: 100vw;
+        margin: -3rem 0 1.5rem -3rem;
+        padding: 1rem clamp(1rem, 4vw, 4rem);
+        border-bottom: 5px solid #F58220;
+        background: #102A43;
+        color: #FFFFFF;
+        font-size: clamp(1rem, 1.4vw, 1.2rem);
+        font-weight: 800;
+        line-height: 1.4;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
     .stApp {
         color: #102A43;
         background:
@@ -307,6 +322,13 @@ st.markdown(
     }
 
     @media (max-width: 640px) {
+        .site-wide-banner {
+            width: calc(100vw - 2rem);
+            margin: -2.5rem -1rem 1.25rem;
+            padding: 0.9rem 1rem;
+            font-size: 0.98rem;
+        }
+
         [data-testid="stAppViewContainer"] > .main [data-testid="stMainBlockContainer"] {
             padding: 2.5rem 1.5rem 2rem;
         }
@@ -315,6 +337,8 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+render_site_banner()
 
 # PAGES
 HOMEPAGE = st.Page("Pages/1_home.py", title="Home", icon="🏠", default=True)

@@ -350,6 +350,25 @@ class SpreadsheetDataTests(unittest.TestCase):
             ["square", "star"],
         )
 
+    def test_athlete_5k_chart_uses_parser_5k_flag(self):
+        chart_data = build_athlete_5k_chart_data(
+            [
+                {
+                    "name": "Runner",
+                    "year": 2026,
+                    "meet": "Girls Invite",
+                    "type": "Cross Country",
+                    "is_5k": True,
+                    "raw_date": date(2026, 9, 1),
+                    "date": "September 1",
+                    "result": "19:10",
+                    "seconds": Decimal(1150),
+                }
+            ]
+        )
+        self.assertEqual(len(chart_data), 1)
+        self.assertEqual(chart_data[0]["time"], "19:10")
+
     def test_postseason_chart_includes_career_pr_markers_for_roster_athletes(self):
         previous_rows = [
             [],

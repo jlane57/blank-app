@@ -228,6 +228,7 @@ for entry in directory.values():
 selected = st.session_state.get("selected_athlete")
 if selected:
 	selected_name, selected_class_year = selected
+	selected_team = selected[2] if len(selected) > 2 else ""
 	athlete = next(
 		(
 			item
@@ -235,6 +236,7 @@ if selected:
 			for item in rosters[year]
 			if item["name"].casefold() == selected_name
 			and item["class_year"] == selected_class_year
+			and (not selected_team or item.get("team", "").upper() == selected_team)
 		),
 		None,
 	)
@@ -414,7 +416,9 @@ else:
 	def show_athlete_button(item, key):
 		if st.button(item["name"], key=key, width="stretch"):
 			st.session_state.selected_athlete = (
-				item["name"].casefold(), item["class_year"]
+				item["name"].casefold(),
+				item["class_year"],
+				item.get("team", "").upper(),
 			)
 			st.rerun()
 

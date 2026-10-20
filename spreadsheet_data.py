@@ -165,7 +165,10 @@ def build_athlete_5k_chart_data(results):
     chart_results = [
         result
         for result in results
-        if "5k" in str(result.get("type", "")).casefold()
+        if (
+            result.get("is_5k")
+            or "5k" in str(result.get("type", "")).casefold()
+        )
         and result.get("seconds") is not None
     ]
     chart_results.sort(
@@ -574,7 +577,7 @@ def parse_year_sheet(rows, year, bold_cells=None):
                 ),
                 "is_5k": bool(
                     re.search(
-                        r"(?<!\d)(?:5\s*k|5000(?:\s*(?:m|meter|metre))?)(?!\d)",
+                        r"(?<![\w-])(?:5\s*k|5000(?:\s*(?:m|meter|metre))?)(?!\d)",
                         f"{meet['name']} {meet['type']}",
                         re.IGNORECASE,
                     )
