@@ -401,6 +401,7 @@ def find_year_sheet_layout(rows):
         return None
 
     metadata_labels = {
+        "race type": "meet_type_row",
         "meet type": "meet_type_row",
         "type": "meet_type_row",
         "meet location": "location_row",
@@ -410,6 +411,8 @@ def find_year_sheet_layout(rows):
         "meet notes": "notes_row",
         "notes": "notes_row",
         "team place": "team_place_row",
+        "boys place": "boys_place_row",
+        "girls place": "girls_place_row",
     }
 
     def labels_in(rows_to_check):
@@ -446,8 +449,18 @@ def find_year_sheet_layout(rows):
             "notes_row", header_row + fallback_offset + 3
         ),
         "team_place_row": metadata_labels_found.get(
-            "team_place_row", header_row + fallback_offset + 4
+            "team_place_row",
+            metadata_labels_found.get(
+                "boys_place_row",
+                metadata_labels_found.get(
+                    "girls_place_row", header_row + fallback_offset + 4
+                ),
+            ),
         ),
+        "boys_place_row": metadata_labels_found.get(
+            "boys_place_row", metadata_labels_found.get("team_place_row")
+        ),
+        "girls_place_row": metadata_labels_found.get("girls_place_row"),
         "first_athlete_row": (
             header_row + 1 if metadata_above else header_row + 6
         ),
@@ -491,6 +504,10 @@ def parse_year_sheet(rows, year, bold_cells=None):
                 "notes": display_text(row_value(rows, layout["notes_row"], column)),
                 "raw_team_place": row_value(rows, layout["team_place_row"], column),
                 "team_place": display_text(row_value(rows, layout["team_place_row"], column)),
+                "raw_boys_place": row_value(rows, layout["boys_place_row"], column),
+                "boys_place": display_text(row_value(rows, layout["boys_place_row"], column)),
+                "raw_girls_place": row_value(rows, layout["girls_place_row"], column),
+                "girls_place": display_text(row_value(rows, layout["girls_place_row"], column)),
             }
         )
 
@@ -511,8 +528,19 @@ def parse_year_sheet(rows, year, bold_cells=None):
             "name": name,
             "raw_grade": raw_grade,
             "grade": format_grade(raw_grade),
-            "raw_best": row_value(rows, row_index, 2),
-            "best": format_race_time(row_value(rows, row_index, 2)),
+            "raw_best": (
+                row_value(rows, row_index, 2)
+                if display_text(row_value(rows, layout["header_row"], 2)).casefold() == "best"
+                else None
+            ),
+            "best": (
+                format_race_time(row_value(rows, row_index, 2))
+                if display_text(row_value(rows, layout["header_row"], 2)).casefold() == "best"
+                else ""
+            ),
+            "team": display_text(row_value(rows, row_index, 2))
+            if display_text(row_value(rows, layout["header_row"], 2)).casefold() == "team"
+            else "",
             "is_postseason": (
                 bold_cells is not None and (row_index, 0) in bold_cells
             ),
@@ -531,6 +559,7 @@ def parse_year_sheet(rows, year, bold_cells=None):
                 "column": column,
                 "name": name,
                 "grade": athlete["grade"],
+                "team": athlete["team"],
                 "meet": meet["name"],
                 "type": meet["type"],
                 "location": meet["location"],

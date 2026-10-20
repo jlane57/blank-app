@@ -1,9 +1,12 @@
 import streamlit as st
+from site_status import render_site_banner
 
 st.set_page_config(
     page_title="Harrison Cross Country",
     page_icon="🏃",
 )
+
+render_site_banner()
 
 st.markdown(
     """
@@ -315,7 +318,6 @@ st.markdown(
 
 # PAGES
 HOMEPAGE = st.Page("Pages/1_home.py", title="Home", icon="🏠", default=True)
-GIRLSPAGE = st.Page("Pages/8_girls_team.py", title="Girls' Team", icon="🏃")
 RECORDSPAGE = st.Page("Pages/2_records.py", title="All-Time Records", icon="🏆")
 ATHLETESPAGE = st.Page("Pages/3_athletes.py", title="Athlete Directory", icon="🏃")
 YEARSPAGE = st.Page("Pages/4_season_overview.py", title="Data by Season", icon="🗓")
@@ -332,7 +334,6 @@ st.sidebar.title("Harrison Cross Country")
 st.sidebar.image("Images/raiders_logo.png", width=225)
 st.sidebar.markdown("---")
 pg = st.sidebar.page_link(HOMEPAGE)
-st.sidebar.page_link(GIRLSPAGE)
 st.sidebar.page_link(RECORDSPAGE)
 st.sidebar.page_link(ATHLETESPAGE)
 st.sidebar.page_link(YEARSPAGE)
@@ -344,7 +345,6 @@ st.sidebar.page_link(ADMINPAGE)
 pg = st.navigation(
     [
         HOMEPAGE,
-        GIRLSPAGE,
         RECORDSPAGE,
         ATHLETESPAGE,
         YEARSPAGE,

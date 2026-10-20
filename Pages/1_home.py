@@ -262,20 +262,14 @@ st.markdown(
     </style>
     <section class="home-hero">
         <div class="home-hero-content">
-            <div class="home-hero-kicker">Boys' Team</div>
+            <div class="home-hero-kicker">Boys' and Girls' Teams</div>
             <h1>Welcome to Harrison Cross Country!</h1>
             <div class="home-hero-divider"></div>
-            <p>View the boys' team stats or visit the girls' team page</p>
+            <p>View results and stats for both teams</p>
         </div>
     </section>
     """,
     unsafe_allow_html=True,
-)
-
-st.page_link(
-    "Pages/8_girls_team.py",
-    label="Visit the Girls' Team page",
-    icon="🏃",
 )
 
 try:

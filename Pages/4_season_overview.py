@@ -117,7 +117,8 @@ meet_rows = sort_meets_by_date(
     [
         {
             "Meet": meet["name"],
-            "Team Place": meet["team_place"],
+            "Boys Place": meet.get("boys_place", ""),
+            "Girls Place": meet.get("girls_place", ""),
             "Type": meet["type"],
             "Location": meet["location"],
             "Date": meet["date"],
@@ -212,6 +213,14 @@ if roster_rows:
             for key in ("Athlete", "Grade")
         }
         | {
+            "Team": next(
+                (
+                    runner["team"]
+                    for runner in season["athletes"]
+                    if runner["name"].casefold() == athlete["Athlete"].casefold()
+                ),
+                "",
+            ),
             "Current PR": athlete["PR"],
             "PR Meet": athlete["Meet"],
             "YtY Improvement": athlete["Improvement"],

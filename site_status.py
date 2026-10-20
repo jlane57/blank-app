@@ -7,6 +7,8 @@ import streamlit as st
 
 STATUS_FILE = Path(__file__).with_name("site_status.json")
 DEFAULT_MESSAGE = "The website is temporarily unavailable. Please check back soon."
+DEFAULT_BANNER_MESSAGE = "Welcome to Harrison Cross Country."
+MAX_STATUS_MESSAGE_LENGTH = 1000
 
 
 def get_site_status():
@@ -17,15 +19,35 @@ def get_site_status():
         return {
             "enabled": status.get("enabled") is not False,
             "offline_message": str(status.get("offline_message", DEFAULT_MESSAGE)),
+            "banner_enabled": status.get("banner_enabled") is True,
+            "banner_message": str(
+                status.get("banner_message", DEFAULT_BANNER_MESSAGE)
+            ),
         }
     except (OSError, ValueError, json.JSONDecodeError):
-        return {"enabled": True, "offline_message": DEFAULT_MESSAGE}
+        return {
+            "enabled": True,
+            "offline_message": DEFAULT_MESSAGE,
+            "banner_enabled": False,
+            "banner_message": DEFAULT_BANNER_MESSAGE,
+        }
 
 
-def save_site_status(enabled, offline_message):
+def save_site_status(
+    enabled,
+    offline_message,
+    banner_enabled=False,
+    banner_message=DEFAULT_BANNER_MESSAGE,
+):
     status = {
         "enabled": bool(enabled),
-        "offline_message": str(offline_message).strip() or DEFAULT_MESSAGE,
+        "offline_message": (
+            str(offline_message).strip() or DEFAULT_MESSAGE
+        )[:MAX_STATUS_MESSAGE_LENGTH],
+        "banner_enabled": bool(banner_enabled),
+        "banner_message": (
+            str(banner_message).strip() or DEFAULT_BANNER_MESSAGE
+        )[:MAX_STATUS_MESSAGE_LENGTH],
     }
     STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -44,6 +66,12 @@ def save_site_status(enabled, offline_message):
     finally:
         if temp_path is not None and temp_path.exists():
             temp_path.unlink()
+
+
+def render_site_banner():
+    status = get_site_status()
+    if status["banner_enabled"]:
+        st.info(status["banner_message"])
 
 
 def stop_if_site_offline():

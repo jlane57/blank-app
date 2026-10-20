@@ -36,6 +36,44 @@ ADMIN_PASSWORD = "choose-a-strong-password"
 
 The local secrets file is ignored by Git. Update either value here for local testing. For Streamlit Community Cloud, add or update both keys under the app's **Settings > Secrets**. Use a strong admin password; changing it in the secrets settings takes effect on the next app run. All team pages are public to anyone with the site link; only the Admin page requires `ADMIN_PASSWORD`.
 
+### Guarded meet-result imports
+
+The Admin page includes a guarded **Import Meet Results** workflow. It accepts
+CSV/TSV, XLSX, UTF-8 text, text-based PDF, and PNG/JPEG uploads when the
+deployment has its OCR engine configured. Uploads are limited to 10 MB and 500
+result rows. Names are matched against the selected roster and race times are
+validated using the same rules as the public pages.
+
+The import is intentionally review-first and has separate Boys and Girls tabs.
+The `Team` column (`B` or `G`) is used to prevent cross-team matches. The admin
+can select an existing meet or create one; new meets are inserted in date order.
+For a new meet, the admin enters its name, race type, location, date, notes, and
+the selected team's place. Imported times are strings in `MM:SS[.DDD]` format,
+with trailing fractional zeroes omitted. Every value written by the importer is
+italicized. The admin can edit suggested athlete names and times in the colored
+confidence preview and review table, must correct invalid or unmatched rows, and
+must confirm every row. Existing results are protected from overwrite unless
+the admin explicitly enables the overwrite option. The approved result is a
+downloadable XLSX copy; the live Google Sheet is never modified automatically.
+This avoids accidental publication and does not require an AI API or a Google
+write credential. PDF/image OCR failures are shown as errors and never produce
+a success-shaped export.
+
+The deployment installs the Tesseract system package from
+[`packages.txt`](./packages.txt) for PNG/JPEG OCR. PDF extraction handles
+text-based PDFs through `pypdf`; image-only/scanned PDFs require a deployment
+with a PDF rendering/OCR pipeline and are rejected clearly when that is not
+available.
+
+### Persistent site controls
+
+The Admin page's Website Availability controls are stored in
+[`site_status.json`](./site_status.json) using an atomic file replacement.
+Turning the website off stays off until an administrator turns it back on; it
+does not automatically re-enable itself. The site-wide banner follows the same
+rule: its enabled state and message remain unchanged until an administrator
+saves new settings. Legacy status files migrate safely with the banner disabled.
+
 ### Anonymous bug reports
 
 The **Report a Bug** sidebar page is public, does not ask for an identity, and sends reports
@@ -69,26 +107,20 @@ this is not end-to-end encryption.
 
 ### Year-tab structure
 
-All four-digit year tabs are read using either supported worksheet layout:
+All four-digit year tabs use the current shared-team layout:
 
-- In the current layout, rows above the athlete header contain meet type,
-  location, date, notes, and team place. The header row has `Name`, `Grade`,
-  and `Best` in columns A:C, with meet names beginning in column D. Athlete
-  rows start immediately below the header.
-- The previous layout has `Name` and `Grade` in columns A:B, meet names in
-  column D onward, metadata rows immediately below the header, and athlete rows
-  below the metadata.
-- In either layout, each meet's results are in its corresponding meet column.
+- Rows above the athlete header contain race type, location, date, notes, boys'
+  place, and girls' place. The header row has `Name`, `Grade`, and `Team` in
+  columns A:C, with meet names beginning in column D. Athlete rows start
+  immediately below the header.
+- `Team` is `B` for boys or `G` for girls. This shared roster powers the Boys
+  Varsity, Boys JV, Girls Varsity, and Girls JV views without separate tabs.
+- Each meet's results are in its corresponding meet column.
 - Bold an athlete's name in column A to include them in the season's postseason
   roster.
 
-Keep race times as `MM:SS` (for example, `16:25`) or `HH:MM:SS` (for example,
-`0:16:25`). Values are interpreted as elapsed time and displayed consistently as
-`MM:SS` or `MM:SS` with a fractional part only when significant (for example,
-`16:25.12`, not `16:25.120`). Formatted Excel time/duration cells are read as
-typed durations. Improvement deltas use `-` for faster and `+` for slower, keep
-the zero-padded minute field (for example, `-00:15`), and omit insignificant
-fractional zeros. Unformatted numeric values are not guessed as times, to avoid
-silently introducing inaccurate results. Blank or unparseable results are
-omitted from athlete result views. An athlete's progression chart includes timed
-results only when that meet's `Meet Type` contains `5k` (case-insensitive).
+Keep race times as strings in `MM:SS[.DDD]` (for example, `16:25` or
+`16:25.347`). Trailing fractional zeroes are omitted. Unformatted numeric
+values are not guessed as times. Blank or unparseable results are omitted from
+athlete result views. An athlete's progression chart includes timed results only
+when that meet's race type contains `5k` (case-insensitive).

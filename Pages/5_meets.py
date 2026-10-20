@@ -10,6 +10,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 from site_status import stop_if_site_offline
 from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
 from spreadsheet_data import parse_workbook_years, sort_meets_by_date
+from team_views import filter_results, randomized_team_order, TEAM_OPTIONS
 
 stop_if_site_offline()
 
@@ -182,7 +183,10 @@ if selected is not None:
         st.rerun()
 
     st.subheader(f"{meet['name']} ({meet['year']})")
-    st.write(f"**Team Place:** {meet['team_place'] or '—'}")
+    st.write(
+        f"**Boys Place:** {meet.get('boys_place') or '—'}  \n"
+        f"**Girls Place:** {meet.get('girls_place') or '—'}"
+    )
     st.write(
         f"**Type:** {meet['type'] or '—'}  \n"
         f"**Location:** {meet['location'] or '—'}  \n"
@@ -198,6 +202,7 @@ if selected is not None:
                 "Time": result["result"],
                 "_seconds": result["seconds"],
                 "_is_varsity": result["is_varsity"],
+                "_team": result.get("team", ""),
             }
             for result in meet["results"]
         ],
@@ -207,25 +212,35 @@ if selected is not None:
     if results.empty:
         st.info("No athlete results were recorded for this meet.")
     else:
-        if results["_is_varsity"].eq(True).any():
-            division = st.radio(
+        selections = randomized_team_order()
+        division = st.radio(
                 "Show Results",
-                ["ALL", "VARSITY", "JV"],
+                selections,
                 horizontal=True,
                 label_visibility="collapsed",
                 key=f"meet_division_{meet['year']}_{meet['column']}",
+                format_func=lambda selection: TEAM_OPTIONS[selection][2],
             )
-            if division == "VARSITY":
-                results = results[results["_is_varsity"].eq(True)]
-            elif division == "JV":
-                results = results[results["_is_varsity"].eq(False)]
+        selected_results = filter_results(meet["results"], division)
+        results = pd.DataFrame(
+            [
+                {
+                    "Name": result["name"],
+                    "Grade": result["grade"],
+                    "Time": result["result"],
+                    "_seconds": result["seconds"],
+                }
+                for result in selected_results
+            ],
+            columns=["Name", "Grade", "Time", "_seconds"],
+        )
 
         results = results.sort_values(
             "_seconds",
             kind="stable",
             na_position="last",
         )
-        st.table(results.drop(columns=["_seconds", "_is_varsity"]).reset_index(drop=True))
+        st.table(results.drop(columns=["_seconds"]).reset_index(drop=True))
 else:
     st.title("Event Database")
     search = st.text_input(

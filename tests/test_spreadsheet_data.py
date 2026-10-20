@@ -126,6 +126,29 @@ class SpreadsheetDataTests(unittest.TestCase):
         self.assertTrue(parsed["athletes"][0]["is_postseason"])
         self.assertEqual(parsed["results"][0]["result"], "16:25")
 
+    def test_current_layout_reads_team_and_gender_places(self):
+        rows = [
+            ["HHS Cross Country Data 2026"],
+            ["", "", "Race Type >", "5K"],
+            ["", "", "Location >", "Town"],
+            ["", "", "Date >", "2026-10-01"],
+            ["", "", "Meet Notes >", "Notes"],
+            ["", "", "Boys Place >", "2nd"],
+            ["", "", "Girls Place >", "1st"],
+            ["Name", "Grade", "Team", "Meet One"],
+            ["Runner Boy", 12, "B", "16:25.347"],
+            ["Runner Girl", 11, "G", "18:10"],
+        ]
+        parsed = parse_year_sheet(rows, 2026, set())
+        self.assertIsNotNone(parsed)
+        assert parsed is not None
+        self.assertEqual(parsed["athletes"][0]["team"], "B")
+        self.assertEqual(parsed["athletes"][1]["team"], "G")
+        self.assertEqual(parsed["meets"][0]["boys_place"], "2nd")
+        self.assertEqual(parsed["meets"][0]["girls_place"], "1st")
+        self.assertEqual(parsed["results"][0]["team"], "B")
+        self.assertEqual(parsed["results"][0]["result"], "16:25.347")
+
     def test_non_time_results_are_not_exposed_or_guessed_as_times(self):
         rows = [
             [],
