@@ -35,6 +35,34 @@ ADMIN_PASSWORD = "choose-a-strong-password"
 
 The local secrets file is ignored by Git. Update either value here for local testing. For Streamlit Community Cloud, add or update both keys under the app's **Settings > Secrets**. Use a strong admin password; changing it in the secrets settings takes effect on the next app run. All team pages are public to anyone with the site link; only the Admin page requires `ADMIN_PASSWORD`.
 
+Durable app-owned writes also require `GOOGLE_SERVICE_ACCOUNT_JSON`. The app
+checks Streamlit secrets first and then the process environment, so a GitHub
+preview can use GitHub-provided secrets when Streamlit secrets are unavailable.
+For a Codespaces preview, add these secrets under the repository's **Codespaces
+secrets** using the exact names below; Codespaces exposes them as environment
+variables:
+
+```text
+SPREADSHEET_ID
+ADMIN_PASSWORD
+GOOGLE_SERVICE_ACCOUNT_JSON
+GOOGLE_DRIVE_FOLDER_ID       # only when photo uploads are enabled
+```
+
+For a GitHub Actions preview, repository secrets are not automatically
+environment variables. Map them explicitly on the preview step, for example:
+
+```yaml
+env:
+  SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+  ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+  GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+  GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+```
+
+Share only this workbook with the service-account email, and never commit the
+JSON key.
+
 ### Guarded meet-result imports
 
 The Admin page includes a guarded **Import Meet Results** workflow. It accepts
@@ -66,20 +94,18 @@ available.
 
 ### Persistent site controls
 
-The Admin page's Website Availability controls are stored in
-[`site_status.json`](./site_status.json) using an atomic file replacement.
-Turning the website off stays off until an administrator turns it back on; it
-does not automatically re-enable itself. The site-wide banner follows the same
-rule: its enabled state and message remain unchanged until an administrator
-saves new settings. Legacy status files migrate safely with the banner disabled.
+The Admin page's Website Availability controls are stored in the workbook's
+`Site Settings` tab. Turning the website off stays off until an administrator
+turns it back on; it does not automatically re-enable itself. The site-wide
+banner follows the same rule. Existing `site_status.json` settings are imported
+when the tab is first created.
 
 ### News
 
 The public **News** page displays team updates. Administrators can publish and
 delete entries from the Admin Center; each entry has a headline, body, and
-publication date. News is stored in the deployment's ignored
-[`news.json`](./news.json) file using atomic replacement, so publishing does
-not modify the spreadsheet.
+publication date. News is stored in the workbook's `News` tab. Existing
+[`news.json`](./news.json) entries are imported when the tab is first created.
 
 ### Photos
 
@@ -104,9 +130,10 @@ featured Home images or ten Meet images at a time.
 
 ### Dependency and deployment policy
 
-Runtime Python dependencies are pinned in both
-[`pyproject.toml`](./pyproject.toml) and
-[`Pages/requirements.txt`](./Pages/requirements.txt), with resolved hashes and
+Runtime Python dependencies are pinned in
+[`requirements.txt`](./requirements.txt) and
+[`pyproject.toml`](./pyproject.toml), with the legacy page-local list in
+[`Pages/requirements.txt`](./Pages/requirements.txt) kept aligned. Resolved hashes and
 transitive versions recorded in [`uv.lock`](./uv.lock). Deployments use
 `uv sync --locked` so an unattended dependency upgrade cannot change behavior.
 The dev container installs only the explicitly listed Tesseract package; it
@@ -123,33 +150,43 @@ tests, and explicit failure paths reduce that risk.
 ### Anonymous bug reports
 
 The **Report a Bug** sidebar page is public, does not ask for an identity, and sends reports
-over HTTPS to a private Google Sheet using the Apps Script receiver in
-[`bug_report_receiver.gs`](./bug_report_receiver.gs). Reports include their
-submission time and text only; do not ask users to include personal or sensitive
-information. Google may process technical request metadata as part of operating
-the service.
+over HTTPS to the private `Bug Reports` tab in the workbook configured by
+`SPREADSHEET_ID`. Reports include their submission time and text only; do not
+ask users to include personal or sensitive information. The report tab has no
+public read path.
 
-To enable submissions:
+The server writes to the workbook with a restricted Google service account.
+Configure `GOOGLE_SERVICE_ACCOUNT_JSON` in Streamlit Community Cloud secrets or
+as a GitHub Codespaces secret for local preview. Share only the target workbook
+with that service-account email, and grant no broader Drive access unless photo
+uploads are enabled. The older Apps Script receiver in
+[`bug_report_receiver.gs`](./bug_report_receiver.gs) is retained as a reference
+for existing deployments but is not used by the current app.
 
-1. Create a Google Sheet for private report storage.
-2. Open **Extensions > Apps Script** from the Sheet and copy the contents of
-   `bug_report_receiver.gs` into the script editor.
-3. In Apps Script **Project Settings > Script Properties**, add:
-   - `BUG_REPORT_SHEET_ID`: the ID from the Google Sheet URL.
-   - `BUG_REPORT_SECRET`: a long, randomly generated secret.
-4. Deploy the script as a **Web app**, executing as yourself and accessible to
-   **Anyone**. The shared secret in the POST body protects the write operation;
-   the Sheet itself should remain private.
-5. Add the deployed `/exec` URL and the same secret to Streamlit secrets:
+### Durable app-owned storage
 
-   ```toml
-   BUG_REPORT_WEB_APP_URL = "https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
-   BUG_REPORT_SECRET = "use-the-same-long-random-secret"
-   ```
+The workbook is the durable source of truth for app-owned data. The app creates
+these tabs when needed:
 
-Submissions are sent by the Streamlit server, not directly by the visitor's
-browser. They are protected in transit by HTTPS and stored in the private Sheet;
-this is not end-to-end encryption.
+- `Bug Reports` — private, append-only anonymous reports.
+- `News` — published announcements.
+- `Site Settings` — website availability and banner settings.
+- `Photo Gallery` — metadata for images stored in the configured Google Drive
+  folder.
+
+Storage writes are conservative by default: reports and new news entries are
+appended, settings update only their known keys, and generic row replacement
+requires an explicit destructive permission. Admin deletion controls are
+separate from ordinary save actions, and meet-result overwrites remain behind
+the existing explicit overwrite option. The app does not clear unrelated
+workbook tabs or rows as part of normal reads or writes.
+
+Existing local `news.json` and `site_status.json` data is imported the first
+time the corresponding workbook tab is empty. Future app data should use a
+new, explicitly named tab and a versioned header rather than deployment-local
+files. Google storage is more durable than deployment files, but it still
+requires normal backups and credential/usage monitoring; no external service
+can guarantee zero outages or zero maintenance.
 
 ### Workbook structure
 

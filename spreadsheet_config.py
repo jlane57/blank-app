@@ -1,4 +1,5 @@
 import re
+import os
 from datetime import datetime
 from io import BytesIO
 from xml.etree import ElementTree
@@ -8,15 +9,22 @@ import requests
 import streamlit as st
 from streamlit.errors import StreamlitSecretNotFoundError
 
-def get_required_secret(name):
+
+def get_configured_secret(name):
     try:
-        value = st.secrets[name]
+        return st.secrets[name]
     except (KeyError, StreamlitSecretNotFoundError):
-        st.error(f"Set {name} in Streamlit secrets to use this app feature.")
+        return os.environ.get(name)
+
+
+def get_required_secret(name):
+    value = get_configured_secret(name)
+    if value is None:
+        st.error(f"Set {name} in Streamlit secrets or the environment to use this app feature.")
         st.stop()
 
     if not isinstance(value, str) or not value.strip():
-        st.error(f"{name} in Streamlit secrets must be a non-empty string.")
+        st.error(f"{name} must be a non-empty string in Streamlit secrets or the environment.")
         st.stop()
 
     return value

@@ -252,7 +252,8 @@ else:
         except (KeyError, OSError, ValueError, requests.RequestException):
             news_images = []
         with st.form("publish_news"):
-            news_headline = st.text_input("Headline", max_chars=160)
+            news_headline = st.text_input("Header", max_chars=160)
+            news_author = st.text_input("Author", max_chars=160, placeholder="Optional")
             news_body = st.text_area("Story", max_chars=5000, height=140)
             news_date = st.date_input("Published date", value=date.today())
             image_options = {"No image": None}
@@ -273,6 +274,7 @@ else:
                     news_body,
                     news_date.isoformat(),
                     image_options[news_image_label],
+                    news_author,
                 )
                 st.success("News item published.")
                 st.rerun()
@@ -287,7 +289,8 @@ else:
                     st.write(entry["body"])
                     if st.button("Delete", key=f"delete_news_{index}"):
                         save_news(
-                            current_news[:index] + current_news[index + 1 :]
+                            current_news[:index] + current_news[index + 1 :],
+                            allow_delete=True,
                         )
                         st.success("News item deleted.")
                         st.rerun()

@@ -22,6 +22,24 @@ class NewsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             news.save_news([{"headline": "Missing body", "published": "2026-10-20"}])
 
+    def test_news_sheet_rows_follow_expected_spreadsheet_columns(self):
+        rows = news.news_sheet_rows(
+            [
+                {
+                    "headline": "Header",
+                    "author": "Coach",
+                    "published": "2026-10-21",
+                    "image": {"file_id": "abc123"},
+                    "body": "Body text",
+                }
+            ]
+        )
+        self.assertEqual(
+            rows[0],
+            ["Header", "Author", "Date", "Image Link/ID", "Body"],
+        )
+        self.assertEqual(rows[1][3], "abc123")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,25 +1,14 @@
 import requests
 import streamlit as st
-from streamlit.errors import StreamlitSecretNotFoundError
 
 from bug_reports import submit_bug_report
+from spreadsheet_storage import storage_configured
 
 st.title("Report a Bug")
 
 
-def get_optional_secret(name):
-    try:
-        value = st.secrets[name]
-    except (KeyError, StreamlitSecretNotFoundError):
-        return None
-    if not isinstance(value, str) or not value.strip():
-        return None
-    return value.strip()
-
-
-report_url = get_optional_secret("BUG_REPORT_WEB_APP_URL")
-report_secret = get_optional_secret("BUG_REPORT_SECRET")
-if not report_url or not report_secret:
+configured = storage_configured()
+if not configured:
     st.info("Bug reporting is not configured yet. Ask an administrator to finish setup.")
 
 with st.form("bug_report_form", clear_on_submit=True):
@@ -32,13 +21,13 @@ with st.form("bug_report_form", clear_on_submit=True):
     )
     report_submitted = st.form_submit_button(
         "Submit Anonymous Report",
-        disabled=not report_url or not report_secret,
+        disabled=not configured,
     )
 
 if report_submitted:
     try:
         with st.spinner("Submitting..."):
-            submit_bug_report(report_message, report_url, report_secret)
+            submit_bug_report(report_message)
     except (requests.RequestException, RuntimeError, ValueError) as error:
         st.error(f"Could not submit the report: {error}")
     else:

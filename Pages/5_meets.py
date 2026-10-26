@@ -14,7 +14,12 @@ from spreadsheet_config import (
 )
 from spreadsheet_data import parse_workbook_years, sort_meets_by_date
 from gallery import get_gallery_entries
-from team_views import filter_results, randomized_team_order, TEAM_OPTIONS
+from team_views import (
+    available_team_selections,
+    filter_results,
+    randomized_team_order,
+    TEAM_OPTIONS,
+)
 
 stop_if_site_offline()
 
@@ -225,9 +230,10 @@ if selected is not None:
     if results.empty:
         st.info("No athlete results were recorded for this meet.")
     else:
+        available_selections = available_team_selections(meet["results"])
         selections = st.session_state.selected_meet_team_order
-        if not selections:
-            selections = randomized_team_order()
+        if not selections or set(selections) != set(available_selections):
+            selections = available_selections
             st.session_state.selected_meet_team_order = selections
         division = st.radio(
                 "Show Results",

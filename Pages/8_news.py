@@ -99,12 +99,14 @@ else:
             if image.get("display_url")
             else ""
         )
+        author = entry.get("author")
         st.markdown(
             (
                 '<article class="news-card">'
                 f"{image_html}"
                 f'<div class="news-date">{html.escape(entry["published"])}</div>'
                 f'<h2>{html.escape(entry["headline"])}</h2>'
+                f'<p>{html.escape(author) if author else ""}</p>'
                 f'<p>{html.escape(entry["body"])}</p>'
                 "</article>"
             ),

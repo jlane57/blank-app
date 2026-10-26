@@ -1,13 +1,21 @@
 import requests
 
+from spreadsheet_storage import append_row, utc_timestamp
 
-def submit_bug_report(message, web_app_url, secret):
+BUG_REPORT_SHEET = "Bug Reports"
+BUG_REPORT_HEADERS = ("Submitted at (UTC)", "Report")
+
+
+def submit_bug_report(message, web_app_url=None, secret=None):
     report_text = message.strip()
     if not report_text:
         raise ValueError("Enter a description before submitting.")
     if len(report_text) > 5000:
         raise ValueError("The description must be 5,000 characters or fewer.")
-    if not web_app_url.strip() or not secret.strip():
+    if not web_app_url and not secret:
+        append_row(BUG_REPORT_SHEET, BUG_REPORT_HEADERS, [utc_timestamp(), report_text])
+        return
+    if not web_app_url or not secret:
         raise ValueError("Bug report submission is not configured.")
 
     response = requests.post(

@@ -1,3 +1,4 @@
+import os
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -6,6 +7,26 @@ import spreadsheet_config
 
 
 class SpreadsheetConfigTests(unittest.TestCase):
+    def test_environment_secret_is_used_when_streamlit_secret_is_missing(self):
+        fake_streamlit = SimpleNamespace(secrets={})
+        with patch("spreadsheet_config.st", fake_streamlit), patch.dict(
+            os.environ, {"SPREADSHEET_ID": "github-preview-id"}, clear=False
+        ):
+            self.assertEqual(
+                spreadsheet_config.get_required_secret("SPREADSHEET_ID"),
+                "github-preview-id",
+            )
+
+    def test_streamlit_secret_takes_precedence_over_environment_secret(self):
+        fake_streamlit = SimpleNamespace(secrets={"SPREADSHEET_ID": "streamlit-id"})
+        with patch("spreadsheet_config.st", fake_streamlit), patch.dict(
+            os.environ, {"SPREADSHEET_ID": "github-preview-id"}, clear=False
+        ):
+            self.assertEqual(
+                spreadsheet_config.get_required_secret("SPREADSHEET_ID"),
+                "streamlit-id",
+            )
+
     def test_spreadsheet_errors_redact_export_url(self):
         self.assertEqual(
             spreadsheet_config.format_spreadsheet_error(
@@ -36,10 +57,12 @@ class SpreadsheetConfigTests(unittest.TestCase):
             error=Mock(),
             stop=stop,
         )
-        with patch("spreadsheet_config.st", fake_streamlit):
+        with patch("spreadsheet_config.st", fake_streamlit), patch.dict(
+            os.environ, {}, clear=True
+        ):
             with self.assertRaisesRegex(RuntimeError, "stopped"):
                 spreadsheet_config.get_spreadsheet_id()
 
         fake_streamlit.error.assert_called_once_with(
-            "Set SPREADSHEET_ID in Streamlit secrets to use this app feature."
+            "Set SPREADSHEET_ID in Streamlit secrets or the environment to use this app feature."
         )

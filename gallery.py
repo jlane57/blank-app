@@ -3,12 +3,8 @@ from datetime import date
 from urllib.parse import quote
 
 import requests
-import streamlit as st
-from google.oauth2 import service_account
-from google.auth.transport.requests import Request
-from streamlit.errors import StreamlitSecretNotFoundError
 
-from spreadsheet_config import get_spreadsheet_id
+from spreadsheet_config import get_configured_secret, get_spreadsheet_id
 
 GALLERY_SHEET = "Photo Gallery"
 GALLERY_HEADERS = (
@@ -30,16 +26,20 @@ SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 
 
 def _credentials():
-    try:
-        raw = st.secrets["GOOGLE_SERVICE_ACCOUNT_JSON"]
-    except (KeyError, StreamlitSecretNotFoundError) as error:
-        raise ValueError("Image storage is not configured.") from error
+    raw = get_configured_secret("GOOGLE_SERVICE_ACCOUNT_JSON")
+    if raw is None:
+        raise ValueError("Image storage is not configured.")
     if not isinstance(raw, str) or not raw.strip():
         raise ValueError("Image storage is not configured.")
     try:
+        from google.auth.transport.requests import Request
+        from google.oauth2 import service_account
+
         info = json.loads(raw)
     except json.JSONDecodeError as error:
         raise ValueError("The image service credential is invalid.") from error
+    except ModuleNotFoundError as error:
+        raise RuntimeError("Image storage requires the google-auth dependency.") from error
     credentials = service_account.Credentials.from_service_account_info(
         info,
         scopes=(DRIVE_SCOPE, SHEETS_SCOPE),
@@ -54,10 +54,9 @@ def _auth_headers():
 
 
 def _folder_id():
-    try:
-        folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
-    except (KeyError, StreamlitSecretNotFoundError) as error:
-        raise ValueError("Image storage is not configured.") from error
+    folder_id = get_configured_secret("GOOGLE_DRIVE_FOLDER_ID")
+    if folder_id is None:
+        raise ValueError("Image storage is not configured.")
     if not isinstance(folder_id, str) or not folder_id.strip():
         raise ValueError("Image storage is not configured.")
     return folder_id.strip()
