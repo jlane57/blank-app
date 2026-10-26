@@ -4,11 +4,11 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from spreadsheet_storage import append_row, read_rows, replace_rows, storage_configured
+from spreadsheet_storage import read_rows, replace_rows, storage_configured
 
 NEWS_FILE = Path(__file__).with_name("news.json")
 NEWS_SHEET = "News"
-NEWS_SHEET_COLUMNS = ["Header", "Author", "Date", "Image Link/ID", "Body"]
+NEWS_SHEET_COLUMNS = ["Header", "Author", "Date", "Image Link/ID", "Body", "Meet ID"]
 MAX_HEADLINE_LENGTH = 160
 MAX_BODY_LENGTH = 5000
 MAX_ENTRIES = 100
@@ -51,6 +51,9 @@ def _normalize_entry(entry):
     image_value = _normalize_image_value(image)
     if image_value:
         normalized["image"] = {"file_id": image_value}
+    meet_id = str(entry.get("meet_id") or "").strip()
+    if meet_id:
+        normalized["meet_id"] = meet_id
     return normalized
 
 
@@ -64,6 +67,7 @@ def news_sheet_rows(entries):
                 str(entry.get("published", "")).strip(),
                 _normalize_image_value(entry.get("image")),
                 str(entry.get("body", "")).strip(),
+                str(entry.get("meet_id", "")).strip(),
             ]
         )
     return rows
@@ -97,6 +101,12 @@ def get_news():
                     "published": values["Date"],
                     "image": values["Image Link/ID"],
                     "body": values["Body"],
+                    "meet_id": (
+                        row[indexes["Meet ID"]]
+                        if indexes.get("Meet ID") is not None
+                        and indexes["Meet ID"] < len(row)
+                        else ""
+                    ),
                 }
             )
             if normalized is not None:
@@ -156,7 +166,7 @@ def save_news(entries, *, allow_delete=False):
             temp_path.unlink()
 
 
-def add_news(headline, body, published=None, image=None, author=""):
+def add_news(headline, body, published=None, image=None, author="", meet_id=""):
     entry = {
         "headline": str(headline).strip(),
         "body": str(body).strip(),
@@ -165,7 +175,10 @@ def add_news(headline, body, published=None, image=None, author=""):
     }
     if image:
         entry["image"] = image
+    if meet_id:
+        entry["meet_id"] = str(meet_id).strip()
     if storage_configured():
-        append_row(NEWS_SHEET, NEWS_SHEET_COLUMNS, news_sheet_rows([entry])[1])
+        current = get_news()
+        save_news([entry, *current], allow_delete=True)
         return
     save_news([entry, *get_news()])

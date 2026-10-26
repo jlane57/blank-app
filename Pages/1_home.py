@@ -25,7 +25,7 @@ try:
         and image["featured"].casefold() == "true"
         and image["approved"].casefold() != "false"
     ][:6]
-except (KeyError, OSError, ValueError, requests.RequestException):
+except (KeyError, OSError, ValueError, RuntimeError, requests.RequestException):
     featured_images = []
 
 
@@ -314,6 +314,7 @@ except (
     KeyError,
     OverflowError,
     InvalidFileException,
+    RuntimeError,
 ) as error:
     st.error("Homepage information is temporarily unavailable.")
     totals = None

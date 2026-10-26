@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date
 from urllib.parse import quote
 
@@ -36,6 +37,11 @@ def _credentials():
         from google.oauth2 import service_account
 
         info = json.loads(raw)
+        if not isinstance(info, dict) or any(
+            not isinstance(info.get(field), str) or not info[field].strip()
+            for field in ("client_email", "private_key", "token_uri")
+        ):
+            raise ValueError("The image service credential is missing required fields.")
     except json.JSONDecodeError as error:
         raise ValueError("The image service credential is invalid.") from error
     except ModuleNotFoundError as error:
@@ -50,7 +56,7 @@ def _credentials():
 
 def _auth_headers():
     credentials = _credentials()
-    return {"Authorization": f"Bearer {credentials.token}"}
+    return {"Authorization": "Bearer " + credentials.token}
 
 
 def _folder_id():
@@ -59,7 +65,10 @@ def _folder_id():
         raise ValueError("Image storage is not configured.")
     if not isinstance(folder_id, str) or not folder_id.strip():
         raise ValueError("Image storage is not configured.")
-    return folder_id.strip()
+    folder_id = folder_id.strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", folder_id):
+        raise ValueError("GOOGLE_DRIVE_FOLDER_ID must be a Google Drive folder ID.")
+    return folder_id
 
 
 def _sheets_url(path):
@@ -149,7 +158,7 @@ def upload_image(
         "https://www.googleapis.com/upload/drive/v3/files"
         "?uploadType=multipart&fields=id,name,mimeType",
         headers={
-            "Authorization": f"Bearer {credentials.token}",
+            "Authorization": "Bearer " + credentials.token,
             "Content-Type": f"multipart/related; boundary={boundary}",
         },
         data=body,

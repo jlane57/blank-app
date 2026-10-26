@@ -11,7 +11,7 @@ class SpreadsheetStorageTests(unittest.TestCase):
 
         self.assertEqual(
             spreadsheet_storage._headers(),
-            {"Authorization": "Bearer access-token"},
+            {"Authorization": "Bearer " + "access-token"},
         )
 
     @patch("spreadsheet_storage._service_account_credentials")

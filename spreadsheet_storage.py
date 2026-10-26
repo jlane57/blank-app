@@ -19,6 +19,13 @@ def _service_account_credentials():
         from google.oauth2 import service_account
 
         info = json.loads(raw)
+        if not isinstance(info, dict) or any(
+            not isinstance(info.get(field), str) or not info[field].strip()
+            for field in ("client_email", "private_key", "token_uri")
+        ):
+            raise ValueError(
+                "The spreadsheet service credential is missing required fields."
+            )
         credentials = service_account.Credentials.from_service_account_info(
             info, scopes=(SHEETS_SCOPE,)
         )
@@ -38,7 +45,7 @@ def _headers():
         raise RuntimeError(
             "Spreadsheet storage authentication did not return an access token."
         )
-    return {"Authorization": f"Bearer {credentials.token}"}
+    return {"Authorization": "Bearer " + credentials.token}
 
 
 def _values_url(sheet_name, cell_range="A:Z"):

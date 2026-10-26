@@ -31,7 +31,15 @@ def get_required_secret(name):
 
 
 def get_spreadsheet_id():
-    return get_required_secret("SPREADSHEET_ID").strip()
+    spreadsheet_id = get_required_secret("SPREADSHEET_ID").strip()
+    if len(spreadsheet_id) >= 2 and spreadsheet_id[0] == spreadsheet_id[-1] == '"':
+        spreadsheet_id = spreadsheet_id[1:-1].strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", spreadsheet_id):
+        raise ValueError(
+            "SPREADSHEET_ID must contain only the Google Sheets document ID, "
+            "without quotes or the full spreadsheet URL."
+        )
+    return spreadsheet_id
 
 
 def get_spreadsheet_export_url(spreadsheet_id):

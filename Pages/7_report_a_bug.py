@@ -7,7 +7,10 @@ from spreadsheet_storage import storage_configured
 st.title("Report a Bug")
 
 
-configured = storage_configured()
+try:
+    configured = storage_configured()
+except (ValueError, RuntimeError):
+    configured = False
 if not configured:
     st.info("Bug reporting is not configured yet. Ask an administrator to finish setup.")
 

@@ -24,7 +24,10 @@ from gallery import get_gallery_entries
 
 stop_if_site_offline()
 
-SPREADSHEET_ID = get_spreadsheet_id()
+try:
+    SPREADSHEET_ID = get_spreadsheet_id()
+except (ValueError, RuntimeError):
+    SPREADSHEET_ID = None
 
 
 def class_year(grade, roster_year):
@@ -172,6 +175,10 @@ def load_rosters(spreadsheet_id):
 
 
 st.title("Athlete Directory")
+
+if SPREADSHEET_ID is None:
+    st.info("Athlete information is unavailable until the team spreadsheet is configured.")
+    st.stop()
 
 try:
 	rosters, workbook_issues = load_rosters(SPREADSHEET_ID)
@@ -449,14 +456,28 @@ else:
 			st.info("No athletes match that search.")
 
 	st.subheader("All Athletes")
-	for year in years:
-		for team, label in (("B", "Boys"), ("G", "Girls")):
-			team_roster = [
-				item for item in rosters[year]
-				if item.get("team", "").upper() == team
-			]
-			if not team_roster:
-				continue
-			st.markdown(f"**{year} {label}**")
-			for item in team_roster:
-				show_athlete_button(item, f"athlete_{year}_{team}_{item['row']}")
+	class_groups = {}
+	for entry in directory.values():
+		item = entry["item"]
+		class_groups.setdefault(item.get("class_year"), []).append(item)
+	for class_year_value in sorted(
+		class_groups,
+		key=lambda value: (
+			value is None,
+			-(value or 0),
+		),
+	):
+		class_label = (
+			f"Class of {class_year_value}"
+			if class_year_value
+			else "Class year unavailable"
+		)
+		st.markdown(f"_{class_label}_")
+		for item in sorted(
+			class_groups[class_year_value],
+			key=lambda athlete: athlete["name"].casefold(),
+		):
+			show_athlete_button(
+				item,
+				f"athlete_{item['year']}_{item.get('team', '').upper()}_{item['row']}",
+			)

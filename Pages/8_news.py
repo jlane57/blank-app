@@ -1,4 +1,5 @@
 import html
+from pathlib import Path
 
 import streamlit as st
 
@@ -26,13 +27,8 @@ st.markdown(
     }
 
     .news-card {
-        margin: 0 0 1.25rem;
-        padding: 1.35rem 1.5rem;
-        border: 1px solid rgba(25, 57, 84, 0.18);
-        border-top: 5px solid #F58220;
-        border-radius: 0.75rem;
-        background: rgba(255, 248, 239, 0.72);
-        box-shadow: 0 4px 14px rgba(16, 42, 67, 0.08);
+        margin: 0 0 0.75rem;
+        padding: 0.25rem 0;
     }
 
     .news-date {
@@ -43,12 +39,13 @@ st.markdown(
         text-transform: uppercase;
     }
 
-    .news-card h2 {
-        margin: 0.35rem 0 0.65rem;
+    .news-card h2,
+    .news-card h3 {
+        margin: 0.2rem 0 0;
         padding: 0;
         border: 0;
         background: transparent;
-        font-size: 1.45rem;
+        font-size: 1.1rem;
     }
 
     .news-card p {
@@ -69,7 +66,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-entries = get_news()
+try:
+    entries = get_news()
+except (OSError, ValueError, RuntimeError, requests.RequestException):
+    entries = []
+    st.info("News is temporarily unavailable.")
 if not entries:
     st.info("No news has been posted yet. Check back soon.")
 else:
@@ -92,30 +93,60 @@ else:
 
     for index, entry in enumerate(visible_entries):
         image = entry.get("image") or {}
-        image_html = (
-            f'<img src="{html.escape(image.get("display_url", ""))}" '
-            f'alt="{html.escape(image.get("alt_text", entry["headline"]))}" '
-            'style="width:100%;max-height:420px;object-fit:cover;border-radius:0.5rem;margin-bottom:1rem;">'
-            if image.get("display_url")
-            else ""
+        image_source = image.get("display_url") or image.get("thumbnail_url")
+        if not image_source and image.get("file_id"):
+            image_source = (
+                "https://drive.google.com/thumbnail"
+                f"?id={image['file_id']}&sz=w160"
+            )
+        thumbnail_source = image_source or str(
+            Path(__file__).resolve().parents[1] / "Images" / "raiders_H_logo.png"
         )
-        author = entry.get("author")
+        image_alt = image.get("alt_text") or entry["headline"]
+
+        if selected_index is None:
+            with st.container(border=True):
+                image_column, content_column = st.columns(
+                    [1.25, 5],
+                    gap="medium",
+                    vertical_alignment="center",
+                )
+                with image_column:
+                    st.image(thumbnail_source, caption=None, width=110)
+                with content_column:
+                    st.markdown(
+                        (
+                            '<div class="news-card">'
+                            f'<div class="news-date">{html.escape(entry["published"])}</div>'
+                            f'<h3>{html.escape(entry["headline"])}</h3>'
+                            "</div>"
+                        ),
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        "Read article",
+                        key=f"read_news_{index}",
+                    ):
+                        st.session_state.selected_news = index
+                        st.rerun()
+            continue
+
+        st.markdown('<article class="news-card">', unsafe_allow_html=True)
         st.markdown(
             (
-                '<article class="news-card">'
-                f"{image_html}"
                 f'<div class="news-date">{html.escape(entry["published"])}</div>'
                 f'<h2>{html.escape(entry["headline"])}</h2>'
-                f'<p>{html.escape(author) if author else ""}</p>'
-                f'<p>{html.escape(entry["body"])}</p>'
-                "</article>"
             ),
             unsafe_allow_html=True,
         )
-        if selected_index is None and st.button(
-            "Read article",
-            key=f"read_news_{index}",
-            width="stretch",
-        ):
-            st.session_state.selected_news = index
-            st.rerun()
+        if image_source:
+            image_column, _ = st.columns([1, 1])
+            with image_column:
+                st.image(image_source, caption=image_alt, use_container_width=True)
+        if entry.get("author"):
+            st.caption(entry["author"])
+        st.markdown(
+            f'<p>{html.escape(entry["body"])}</p>',
+            unsafe_allow_html=True,
+        )
+        st.markdown("</article>", unsafe_allow_html=True)

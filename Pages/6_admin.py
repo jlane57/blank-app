@@ -21,6 +21,7 @@ from spreadsheet_config import (
 )
 from spreadsheet_data import parse_workbook_years
 from spreadsheet_data import parse_race_time
+from meet_registry import assign_meet_ids
 
 from site_status import (
     DEFAULT_BANNER_MESSAGE,
@@ -97,8 +98,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown('<div class="admin-kicker">Restricted workspace</div>', unsafe_allow_html=True)
-st.title("Admin Center")
+st.title("Admin Portal")
 st.markdown(
     '<p class="admin-intro">Manage site availability, announcements, and reviewed meet imports.</p>',
     unsafe_allow_html=True,
@@ -136,11 +136,12 @@ def load_image_destinations(spreadsheet_id):
     meets = []
     athletes = {}
     for year, season in workbook.items():
+        assign_meet_ids(season["meets"])
         for meet in season["meets"]:
             meets.append(
                 (
                     f"{meet['name']} ({year})",
-                    f"meet:{year}:{meet['column']}",
+                    meet["meet_id"],
                 )
             )
         for athlete in season["athletes"]:
@@ -248,37 +249,51 @@ else:
         st.subheader("News")
         st.caption("Publish updates that appear on the public News page.")
         try:
-            news_images = get_gallery_entries()
-        except (KeyError, OSError, ValueError, requests.RequestException):
-            news_images = []
+            news_meet_options = [("No meet", "")]
+            news_meet_options.extend(
+                load_image_destinations(get_spreadsheet_id())[0]
+            )
+        except (OSError, ValueError, KeyError, requests.RequestException):
+            news_meet_options = [("No meet", "")]
         with st.form("publish_news"):
             news_headline = st.text_input("Header", max_chars=160)
             news_author = st.text_input("Author", max_chars=160, placeholder="Optional")
             news_body = st.text_area("Story", max_chars=5000, height=140)
             news_date = st.date_input("Published date", value=date.today())
-            image_options = {"No image": None}
-            image_options.update(
-                {
-                    f"{entry['caption'] or entry['file_id']} · {entry['date_uploaded']}": entry
-                    for entry in news_images
-                    if entry["category"].casefold() == "news"
-                }
+            news_image = st.file_uploader(
+                "Article image (optional)",
+                type=["jpg", "jpeg", "png", "webp"],
+                accept_multiple_files=False,
+                help="Drag an image here or click Browse files. Leave blank for no image.",
             )
-            news_image_label = st.selectbox("Article image", list(image_options))
+            news_meet_label = st.selectbox(
+                "Tag to a meet (optional)",
+                [label for label, _ in news_meet_options],
+            )
             publish_news = st.form_submit_button("Publish News")
 
         if publish_news:
             try:
+                image = None
+                if news_image is not None:
+                    image = upload_image(
+                        news_image.getvalue(),
+                        news_image.name,
+                        caption=news_headline,
+                        alt_text=news_headline,
+                        category="news",
+                    )
                 add_news(
                     news_headline,
                     news_body,
                     news_date.isoformat(),
-                    image_options[news_image_label],
+                    image,
                     news_author,
+                    dict(news_meet_options)[news_meet_label],
                 )
                 st.success("News item published.")
                 st.rerun()
-            except ValueError as error:
+            except (ValueError, OSError, requests.RequestException) as error:
                 st.error(str(error))
 
         current_news = get_news()

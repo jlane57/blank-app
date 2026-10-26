@@ -296,6 +296,18 @@ st.markdown(
         overflow: hidden;
     }
 
+    div[data-testid="stDataFrame"] [role="gridcell"],
+    div[data-testid="stDataFrame"] [role="columnheader"],
+    div[data-testid="stDataFrame"] [role="gridcell"] *,
+    div[data-testid="stDataFrame"] [role="columnheader"] *,
+    div[data-testid="stTable"] th,
+    div[data-testid="stTable"] td,
+    div[data-testid="stTable"] th *,
+    div[data-testid="stTable"] td * {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+
     input[type="radio"],
     input[type="checkbox"] {
         accent-color: #F58220;
@@ -359,8 +371,13 @@ RECORDSPAGE = st.Page("Pages/2_records.py", title="All-Time Records", icon="🏆
 ATHLETESPAGE = st.Page("Pages/3_athletes.py", title="Athlete Directory", icon="🏃")
 YEARSPAGE = st.Page("Pages/4_team_data.py", title="Team Data", icon="🗓")
 EVENTSPAGE = st.Page("Pages/5_meets.py", title="Meets & Events", icon="🏅")
+DATAPAGE = st.Page(
+    "Pages/6_data_interactive.py",
+    title="Data Interactive",
+    icon="📊",
+)
 NEWSPAGE = st.Page("Pages/8_news.py", title="News", icon="📰")
-ADMINPAGE = st.Page("Pages/6_admin.py", title="Admin Access", icon="🔑", visibility="hidden")
+ADMINPAGE = st.Page("Pages/6_admin.py", title="Admin Portal", icon="🔑", visibility="hidden")
 BUGREPORTPAGE = st.Page(
     "Pages/7_report_a_bug.py",
     title="Report a Bug",
@@ -376,6 +393,7 @@ st.sidebar.page_link(RECORDSPAGE)
 st.sidebar.page_link(ATHLETESPAGE)
 st.sidebar.page_link(YEARSPAGE)
 st.sidebar.page_link(EVENTSPAGE)
+st.sidebar.page_link(DATAPAGE)
 st.sidebar.page_link(NEWSPAGE)
 st.sidebar.markdown("---")
 st.sidebar.page_link(BUGREPORTPAGE)
@@ -388,6 +406,7 @@ pg = st.navigation(
         ATHLETESPAGE,
         YEARSPAGE,
         EVENTSPAGE,
+        DATAPAGE,
         NEWSPAGE,
         BUGREPORTPAGE,
         ADMINPAGE,

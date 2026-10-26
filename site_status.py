@@ -4,6 +4,7 @@ import os
 import tempfile
 from pathlib import Path
 
+import requests
 import streamlit as st
 
 from spreadsheet_storage import read_rows, replace_rows, storage_configured, update_key_values
@@ -17,33 +18,36 @@ MAX_STATUS_MESSAGE_LENGTH = 1000
 
 
 def get_site_status():
-    if storage_configured():
-        rows = read_rows(STATUS_SHEET)
-        if not rows:
-            legacy_status = _get_local_status()
-            replace_rows(
-                STATUS_SHEET,
-                STATUS_HEADERS,
-                [
-                    ["enabled", "TRUE" if legacy_status["enabled"] else "FALSE"],
-                    ["offline_message", legacy_status["offline_message"]],
-                    ["banner_enabled", "TRUE" if legacy_status["banner_enabled"] else "FALSE"],
-                    ["banner_message", legacy_status["banner_message"]],
-                ],
-                allow_destructive=True,
-            )
-            return legacy_status
-        values = {
-            str(row[0]).strip(): str(row[1]).strip()
-            for row in rows[1:]
-            if len(row) >= 2 and str(row[0]).strip()
-        } if rows else {}
-        return {
-            "enabled": values.get("enabled", "TRUE").upper() == "TRUE",
-            "offline_message": values.get("offline_message", DEFAULT_MESSAGE),
-            "banner_enabled": values.get("banner_enabled", "FALSE").upper() == "TRUE",
-            "banner_message": values.get("banner_message", DEFAULT_BANNER_MESSAGE),
-        }
+    try:
+        if storage_configured():
+            rows = read_rows(STATUS_SHEET)
+            if not rows:
+                legacy_status = _get_local_status()
+                replace_rows(
+                    STATUS_SHEET,
+                    STATUS_HEADERS,
+                    [
+                        ["enabled", "TRUE" if legacy_status["enabled"] else "FALSE"],
+                        ["offline_message", legacy_status["offline_message"]],
+                        ["banner_enabled", "TRUE" if legacy_status["banner_enabled"] else "FALSE"],
+                        ["banner_message", legacy_status["banner_message"]],
+                    ],
+                    allow_destructive=True,
+                )
+                return legacy_status
+            values = {
+                str(row[0]).strip(): str(row[1]).strip()
+                for row in rows[1:]
+                if len(row) >= 2 and str(row[0]).strip()
+            }
+            return {
+                "enabled": values.get("enabled", "TRUE").upper() == "TRUE",
+                "offline_message": values.get("offline_message", DEFAULT_MESSAGE),
+                "banner_enabled": values.get("banner_enabled", "FALSE").upper() == "TRUE",
+                "banner_message": values.get("banner_message", DEFAULT_BANNER_MESSAGE),
+            }
+    except (OSError, ValueError, RuntimeError, requests.RequestException):
+        pass
 
     return _get_local_status()
 
@@ -86,18 +90,21 @@ def save_site_status(
             str(banner_message).strip() or DEFAULT_BANNER_MESSAGE
         )[:MAX_STATUS_MESSAGE_LENGTH],
     }
-    if storage_configured():
-        update_key_values(
-            STATUS_SHEET,
-            STATUS_HEADERS,
-            {
-                "enabled": "TRUE" if status["enabled"] else "FALSE",
-                "offline_message": status["offline_message"],
-                "banner_enabled": "TRUE" if status["banner_enabled"] else "FALSE",
-                "banner_message": status["banner_message"],
-            },
-        )
-        return
+    try:
+        if storage_configured():
+            update_key_values(
+                STATUS_SHEET,
+                STATUS_HEADERS,
+                {
+                    "enabled": "TRUE" if status["enabled"] else "FALSE",
+                    "offline_message": status["offline_message"],
+                    "banner_enabled": "TRUE" if status["banner_enabled"] else "FALSE",
+                    "banner_message": status["banner_message"],
+                },
+            )
+            return
+    except (OSError, ValueError, RuntimeError) as error:
+        raise RuntimeError("Could not save settings to Google Sheets.") from error
 
     STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
 

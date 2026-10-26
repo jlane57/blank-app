@@ -4,6 +4,10 @@ Streamlit site for Harrison Cross Country team records, athlete results, and
 meet data. The records, athlete, season, and meet pages use the shared boys'
 and girls' team spreadsheet.
 
+The **Data Interactive** page provides filtered comparisons across athletes,
+meets, seasons, and recorded team performance. It includes charts, detailed
+result tables, 5K-only filtering, and CSV downloads for comparison results.
+
 ### How to run it on your own machine
 
 Prerequisite: install `uv` if you don't already have it.
@@ -63,6 +67,12 @@ env:
 Share only this workbook with the service-account email, and never commit the
 JSON key.
 
+For the complete Google Cloud project, service-account, Sheet, Drive folder,
+least-privilege sharing, and verification checklist, see
+[`GOOGLE_SETUP.md`](./GOOGLE_SETUP.md). The app authenticates directly from the
+server with the service account; it does not expose a Google credential or
+write endpoint to visitors.
+
 ### Guarded meet-result imports
 
 The Admin page includes a guarded **Import Meet Results** workflow. It accepts
@@ -103,13 +113,13 @@ when the tab is first created.
 ### News
 
 The public **News** page displays team updates. Administrators can publish and
-delete entries from the Admin Center; each entry has a headline, body, and
+delete entries from the Admin Portal; each entry has a headline, body, and
 publication date. News is stored in the workbook's `News` tab. Existing
 [`news.json`](./news.json) entries are imported when the tab is first created.
 
 ### Photos
 
-Administrators can upload images to Google Drive from the Admin Center. Add
+Administrators can upload images to Google Drive from the Admin Portal. Add
 these secrets to enable uploads:
 
 ```toml
@@ -190,9 +200,13 @@ can guarantee zero outages or zero maintenance.
 
 ### Workbook structure
 
-The records page reads the `Athlete Records`, `Team Records`, and `Amp Records`
-tabs. Each record tab contains boys' data in the left block and girls' data in
-the right block.
+The records page reads manually maintained individual, team, and
+amphitheater record tabs. Boys' and girls' data may be kept in separate tabs
+named `Boys Individual Records`, `Girls Individual Records`,
+`Boys Team Records`, `Girls Team Records`, `Boys Amp Records`, and
+`Girls Amp Records`. The older combined `Athlete Records`, `Team Records`, and
+`Amp Records` layout remains supported, with boys' data in the left block and
+girls' data in the right block.
 
 ### Year-tab structure
 

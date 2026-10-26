@@ -1,0 +1,263 @@
+[
+  {
+    "meet_id": "meet_94dc332d05e34b48aa6f2ec4bcd0075a",
+    "source_key": "2026:3",
+    "year": "2026",
+    "name": "Brownsburg 4k",
+    "date": "August 22",
+    "location": "Brownsburg",
+    "type": "4k"
+  },
+  {
+    "meet_id": "meet_c60c923ead5f4b229bebcf08f583a4f1",
+    "source_key": "2026:4",
+    "year": "2026",
+    "name": "Champ at the Amp",
+    "date": "August 25",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_3a691997532e4264ace87a7d43ca3e62",
+    "source_key": "2026:5",
+    "year": "2026",
+    "name": "Avon Hokum Karem",
+    "date": "August 29",
+    "location": "Avon",
+    "type": "Hokum Karem (3x1 Mile, alternating) for Varsity, 2 miles for JV"
+  },
+  {
+    "meet_id": "meet_6aa2b524830641f5b4acfce2128e5e08",
+    "source_key": "2026:6",
+    "year": "2026",
+    "name": "HHS Invite",
+    "date": "September 5",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_06be04ea87d842579813769cbf2500ad",
+    "source_key": "2026:7",
+    "year": "2026",
+    "name": "Wildcat Classic",
+    "date": "September 12",
+    "location": "IWU",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_bae5869016494c9f8f4da40f977b711a",
+    "source_key": "2026:8",
+    "year": "2026",
+    "name": "Flashrock",
+    "date": "September 19",
+    "location": "Carmel Northview Church",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_9c623c543f91418c8876251782a4e1d9",
+    "source_key": "2026:9",
+    "year": "2026",
+    "name": "Culver Invite",
+    "date": "September 26",
+    "location": "Culver Academy",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_6eebaf90bee04cecaea497830e12af2a",
+    "source_key": "2026:10",
+    "year": "2026",
+    "name": "Nike Twilight",
+    "date": "October 3",
+    "location": "LaVern Gibson",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_763cedad67504ef28c52769893b65440",
+    "source_key": "2026:11",
+    "year": "2026",
+    "name": "JV Finale",
+    "date": "October 6",
+    "location": "Wea MS",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_d2eb107362b94e24a535822f84c785d7",
+    "source_key": "2026:12",
+    "year": "2026",
+    "name": "Conference",
+    "date": "October 10",
+    "location": "Danville",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_563d2dc45d8c4def8165336f60a018c4",
+    "source_key": "2026:13",
+    "year": "2026",
+    "name": "Sectional",
+    "date": "October 17",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_b248fe942db546d498c7c56f70e9c019",
+    "source_key": "2026:14",
+    "year": "2026",
+    "name": "Regional",
+    "date": "October 24",
+    "location": "Brownsburg",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_adfcb0dad8574d7ba376c9ff6f4f596f",
+    "source_key": "2026:15",
+    "year": "2026",
+    "name": "State",
+    "date": "October 31",
+    "location": "LaVern Gibson",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_12a51a571e8b424c93ee085b04962e92",
+    "source_key": "2025:3",
+    "year": "2025",
+    "name": "Intrasquad",
+    "date": "August 8",
+    "location": "Amp",
+    "type": "5k Time Trial"
+  },
+  {
+    "meet_id": "meet_8ad29d7fbec84b88b88f946f8bf26cc9",
+    "source_key": "2025:4",
+    "year": "2025",
+    "name": "Champ at the Amp",
+    "date": "August 16",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_2b3cc58a3ad44c18b7f03e8d8e9490d0",
+    "source_key": "2025:5",
+    "year": "2025",
+    "name": "KV Hokum Karem",
+    "date": "August 19",
+    "location": "KV",
+    "type": "Hokum Karem (5x1k, alternating)"
+  },
+  {
+    "meet_id": "meet_de588f682c71483ca4f1d0d6da0a0efd",
+    "source_key": "2025:6",
+    "year": "2025",
+    "name": "Brownsburg 4k",
+    "date": "August 23",
+    "location": "Brownsburg",
+    "type": "4k"
+  },
+  {
+    "meet_id": "meet_ce550344730941949316a1dfa291710e",
+    "source_key": "2025:7",
+    "year": "2025",
+    "name": "Avon Hokum Karem",
+    "date": "August 30",
+    "location": "Avon",
+    "type": "Hokum Karem (3x1 Mile, alternating) for Varsity, 2 miles for JV"
+  },
+  {
+    "meet_id": "meet_ccd4bd8b4a7746d5b6a317d3263b26b5",
+    "source_key": "2025:8",
+    "year": "2025",
+    "name": "City/County",
+    "date": "September 2",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_6b8a122ac80a48ad8590775dda1467df",
+    "source_key": "2025:9",
+    "year": "2025",
+    "name": "HHS Invite",
+    "date": "September 6",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_576e98190b9b4a4687e26ede799b2a1d",
+    "source_key": "2025:10",
+    "year": "2025",
+    "name": "Wildcat Classic",
+    "date": "September 13",
+    "location": "IWU",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_7a7431098d5440fcab74588232657b32",
+    "source_key": "2025:11",
+    "year": "2025",
+    "name": "Flashrock",
+    "date": "September 20",
+    "location": "Carmel Northview Church",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_4692c490a9dc4de5bcd7b5bd1ea1eb1a",
+    "source_key": "2025:12",
+    "year": "2025",
+    "name": "Culver",
+    "date": "September 27",
+    "location": "Culver Academies",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_5e8644d4a79a4e12a3dd9a26a674384d",
+    "source_key": "2025:13",
+    "year": "2025",
+    "name": "Nike Twilight",
+    "date": "October 4",
+    "location": "LaVern Gibson",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_7ad9a3f6a2a54f3db5fc8ddb45bc463a",
+    "source_key": "2025:14",
+    "year": "2025",
+    "name": "JV Finale",
+    "date": "October 7",
+    "location": "Wea MS",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_c17683bb42194528af16ecf3f91ff5b7",
+    "source_key": "2025:15",
+    "year": "2025",
+    "name": "Conference",
+    "date": "October 11",
+    "location": "Amp",
+    "type": "5k"
+  },
+  {
+    "meet_id": "meet_25ed1633070c449d8880eb0ae7fe1221",
+    "source_key": "2025:16",
+    "year": "2025",
+    "name": "Sectional",
+    "date": "October 18",
+    "location": "Amp",
+    "type": "Postseason 5k and 5k Time Trial"
+  },
+  {
+    "meet_id": "meet_fad5baada6bc4585a137a924dd8c84ee",
+    "source_key": "2025:17",
+    "year": "2025",
+    "name": "Regional",
+    "date": "October 25",
+    "location": "Brownsburg",
+    "type": "Postseason 5k"
+  },
+  {
+    "meet_id": "meet_c387a1c2a5164ab7b965435adf9839c6",
+    "source_key": "2025:18",
+    "year": "2025",
+    "name": "State",
+    "date": "November 1",
+    "location": "LaVern Gibson",
+    "type": "Postseason 5k"
+  }
+]

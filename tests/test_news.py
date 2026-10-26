@@ -36,9 +36,23 @@ class NewsTests(unittest.TestCase):
         )
         self.assertEqual(
             rows[0],
-            ["Header", "Author", "Date", "Image Link/ID", "Body"],
+            ["Header", "Author", "Date", "Image Link/ID", "Body", "Meet ID"],
         )
         self.assertEqual(rows[1][3], "abc123")
+
+    def test_news_sheet_rows_include_optional_meet_id(self):
+        rows = news.news_sheet_rows(
+            [
+                {
+                    "headline": "Meet article",
+                    "author": "",
+                    "published": "2026-10-21",
+                    "body": "Body text",
+                    "meet_id": "meet_123",
+                }
+            ]
+        )
+        self.assertEqual(rows[1][-1], "meet_123")
 
 
 if __name__ == "__main__":

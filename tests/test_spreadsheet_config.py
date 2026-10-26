@@ -50,6 +50,21 @@ class SpreadsheetConfigTests(unittest.TestCase):
 
         get_required_secret.assert_called_once_with("SPREADSHEET_ID")
 
+    def test_spreadsheet_id_accepts_quotes_added_to_secret_value(self):
+        with patch(
+            "spreadsheet_config.get_required_secret",
+            return_value=' "configured-id" ',
+        ):
+            self.assertEqual(spreadsheet_config.get_spreadsheet_id(), "configured-id")
+
+    def test_spreadsheet_id_rejects_full_url(self):
+        with patch(
+            "spreadsheet_config.get_required_secret",
+            return_value="https://docs.google.com/spreadsheets/d/configured-id/edit",
+        ):
+            with self.assertRaisesRegex(ValueError, "only the Google Sheets document ID"):
+                spreadsheet_config.get_spreadsheet_id()
+
     def test_missing_spreadsheet_secret_stops_with_configuration_error(self):
         stop = Mock(side_effect=RuntimeError("stopped"))
         fake_streamlit = SimpleNamespace(

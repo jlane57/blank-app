@@ -14,6 +14,8 @@ from spreadsheet_config import (
 )
 from spreadsheet_data import parse_workbook_years, sort_meets_by_date
 from gallery import get_gallery_entries
+from meet_registry import assign_meet_ids
+from news import get_news
 from team_views import (
     available_team_selections,
     filter_results,
@@ -150,6 +152,7 @@ for year in years:
             if result["column"] == meet["column"]
         ]
         meets.append(meet)
+assign_meet_ids(meets)
 
 if not meets:
     st.info("No meets are available yet.")
@@ -270,7 +273,10 @@ if selected is not None:
             image
             for image in get_gallery_entries()
             if image["category"].casefold() == "meet"
-            and image["related_key"] == f"meet:{meet['year']}:{meet['column']}"
+            and image["related_key"] in {
+                meet.get("meet_id"),
+                f"meet:{meet['year']}:{meet['column']}",
+            }
             and image["approved"].casefold() != "false"
         ][:10]
     except (KeyError, OSError, ValueError, requests.RequestException):
@@ -287,6 +293,25 @@ if selected is not None:
                 )
                 if image["photographer"]:
                     st.caption(f"Photo: {image['photographer']}")
+    try:
+        meet_news = [
+            entry for entry in get_news()
+            if entry.get("meet_id") == meet.get("meet_id")
+        ][:5]
+    except (KeyError, OSError, ValueError, requests.RequestException):
+        meet_news = []
+    if meet_news:
+        st.subheader("Meet News")
+        for entry in meet_news:
+            article_image = entry.get("image") or {}
+            if article_image.get("display_url"):
+                st.image(
+                    article_image["display_url"],
+                    caption=entry["headline"],
+                    use_container_width=True,
+                )
+            st.markdown(f"**{entry['headline']}** · {entry['published']}")
+            st.write(entry["body"])
 else:
     st.title("Event Database")
     search = st.text_input(
