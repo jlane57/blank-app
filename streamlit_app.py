@@ -74,16 +74,16 @@ st.markdown(
     [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
         position: fixed !important;
-        top: 0.75rem !important;
-        left: 0.75rem !important;
+        top: 1.5rem !important;
+        left: 1rem !important;
         z-index: 10000 !important;
     }
 
     [data-testid="collapsedControl"],
     [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
-        width: 5rem !important;
-        height: 5rem !important;
+        width: 4rem !important;
+        height: 4rem !important;
         align-items: center;
         justify-content: center;
     }
@@ -93,18 +93,18 @@ st.markdown(
     button[data-testid="stExpandSidebarButton"],
     [data-testid="collapsedControl"] button[aria-label*="Expand"] {
         box-sizing: border-box !important;
-        width: 5rem !important;
-        height: 5rem !important;
-        min-width: 5rem !important;
-        min-height: 5rem !important;
-        padding: 0.75rem !important;
+        width: 4rem !important;
+        height: 4rem !important;
+        min-width: 4rem !important;
+        min-height: 4rem !important;
+        padding: 0.5rem !important;
         align-items: center;
         justify-content: center;
         border: 2px solid rgba(255, 255, 255, 0.8) !important;
         border-radius: 0.65rem !important;
         background: #F58220 !important;
         box-shadow:
-            0 0 0 6px #193954,
+            0 0 0 4px #193954,
             0 2px 8px rgba(16, 42, 67, 0.3) !important;
         color: #102A43 !important;
     }
@@ -112,8 +112,8 @@ st.markdown(
     button[data-testid="stExpandSidebarButton"]::after,
     [data-testid="collapsedControl"] button[aria-label*="Expand"]::after {
         content: " MENU";
-        margin-left: 0.35rem;
-        font-size: 0.82rem;
+        margin-left: 0.25rem;
+        font-size: 0.7rem;
         font-weight: 900;
         letter-spacing: 0.04em;
     }
@@ -124,7 +124,6 @@ st.markdown(
     button[data-testid="stExpandSidebarButton"]:hover,
     [data-testid="collapsedControl"] button[aria-label*="Expand"]:hover {
         background: #FFB15C !important;
-        transform: scale(1.06);
     }
 
     [data-testid="collapsedControl"]:focus-visible,
@@ -140,8 +139,8 @@ st.markdown(
     [data-testid="stSidebarCollapsedControl"] button svg,
     button[data-testid="stExpandSidebarButton"] svg,
     [data-testid="collapsedControl"] button[aria-label*="Expand"] svg {
-        width: 2rem !important;
-        height: 2rem !important;
+        width: 1.6rem !important;
+        height: 1.6rem !important;
         stroke-width: 2.5;
     }
 
