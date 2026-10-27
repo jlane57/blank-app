@@ -30,18 +30,26 @@ $ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ### Configure the spreadsheet
 
-The app reads its spreadsheet ID and admin password from Streamlit secrets. For local testing, create `.streamlit/secrets.toml` with:
+When a Google Sheet is configured, the app reads its spreadsheet ID and admin
+password from Streamlit secrets. For local testing, create `.streamlit/secrets.toml` with:
 
 ```toml
 SPREADSHEET_ID = "***REMOVED***"
 ADMIN_PASSWORD = "choose-a-strong-password"
+NEWS_ADMIN_PASSWORD = "choose-a-different-strong-password"
 ```
 
-The local secrets file is ignored by Git. Update either value here for local testing. For Streamlit Community Cloud, add or update both keys under the app's **Settings > Secrets**. Use a strong admin password; changing it in the secrets settings takes effect on the next app run. All team pages are public to anyone with the site link; only the Admin page requires `ADMIN_PASSWORD`.
+The local secrets file is ignored by Git. Update these values for local testing. For Streamlit Community Cloud, add or update all three keys under the app's **Settings > Secrets**. Use different strong passwords; changing them in the secrets settings takes effect on the next app run. All team pages are public to anyone with the site link. The Admin page requires `ADMIN_PASSWORD`, while the separate News Portal entry requires `NEWS_ADMIN_PASSWORD`.
 
-Durable app-owned writes also require `GOOGLE_SERVICE_ACCOUNT_JSON`. The app
+Durable app-owned writes require `GOOGLE_SERVICE_ACCOUNT_JSON`; they remain
+disabled in the local-first deployment. The app
 checks Streamlit secrets first and then the process environment, so a GitHub
 preview can use GitHub-provided secrets when Streamlit secrets are unavailable.
+News publishing has a local JSON fallback, so the `NEWS_ADMIN_PASSWORD` sign-in
+and text-only news publishing work on the first launch without Google service
+account setup. Pre-Google news edits are written to the tracked `news.json`
+file, so they can be committed to GitHub and restored on the next deployment.
+Configure the service account when shared, automatic persistence is needed.
 For a Codespaces preview, add these secrets under the repository's **Codespaces
 secrets** using the exact names below; Codespaces exposes them as environment
 variables:
@@ -49,6 +57,7 @@ variables:
 ```text
 SPREADSHEET_ID
 ADMIN_PASSWORD
+NEWS_ADMIN_PASSWORD
 GOOGLE_SERVICE_ACCOUNT_JSON
 GOOGLE_DRIVE_FOLDER_ID       # only when photo uploads are enabled
 ```
@@ -60,6 +69,7 @@ environment variables. Map them explicitly on the preview step, for example:
 env:
   SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
   ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+  NEWS_ADMIN_PASSWORD: ${{ secrets.NEWS_ADMIN_PASSWORD }}
   GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
   GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
 ```
@@ -102,6 +112,10 @@ text-based PDFs through `pypdf`; image-only/scanned PDFs require a deployment
 with a PDF rendering/OCR pipeline and are rejected clearly when that is not
 available.
 
+Photo uploads are also disabled until both the service account and Drive folder
+are configured. Public pages intentionally show no remote gallery images when
+that integration is absent; the bundled hero images remain available.
+
 ### Persistent site controls
 
 The Admin page's Website Availability controls are stored in the workbook's
@@ -113,9 +127,10 @@ when the tab is first created.
 ### News
 
 The public **News** page displays team updates. Administrators can publish and
-delete entries from the Admin Portal; each entry has a headline, body, and
-publication date. News is stored in the workbook's `News` tab. Existing
-[`news.json`](./news.json) entries are imported when the tab is first created.
+delete entries from the News Publishing page; each entry has a headline, body, and
+publication date. News is stored in the workbook's `News` tab when Google
+storage is configured, and in a local `news.json` file otherwise. Existing
+local entries are imported when the `News` tab is first created.
 
 ### Photos
 
@@ -159,19 +174,17 @@ tests, and explicit failure paths reduce that risk.
 
 ### Anonymous bug reports
 
-The **Report a Bug** sidebar page is public, does not ask for an identity, and sends reports
-over HTTPS to the private `Bug Reports` tab in the workbook configured by
-`SPREADSHEET_ID`. Reports include their submission time and text only; do not
-ask users to include personal or sensitive information. The report tab has no
-public read path.
+The **Report a Bug** sidebar page is public, does not ask for an identity, and
+sends reports over HTTPS to the separate legacy Google Apps Script endpoint and
+spreadsheet. Configure these secrets:
 
-The server writes to the workbook with a restricted Google service account.
-Configure `GOOGLE_SERVICE_ACCOUNT_JSON` in Streamlit Community Cloud secrets or
-as a GitHub Codespaces secret for local preview. Share only the target workbook
-with that service-account email, and grant no broader Drive access unless photo
-uploads are enabled. The older Apps Script receiver in
-[`bug_report_receiver.gs`](./bug_report_receiver.gs) is retained as a reference
-for existing deployments but is not used by the current app.
+```toml
+BUG_REPORT_WEB_APP_URL = "https://script.google.com/macros/s/your-deployment-id/exec"
+BUG_REPORT_SECRET = "your-shared-secret"
+```
+
+Reports include their submission time and text only; do not ask users to
+include personal or sensitive information.
 
 ### Durable app-owned storage
 

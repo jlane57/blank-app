@@ -4,6 +4,7 @@ from site_status import render_site_banner
 st.set_page_config(
     page_title="Harrison Cross Country",
     page_icon="🏃",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
@@ -77,30 +78,60 @@ st.markdown(
         z-index: 10000 !important;
     }
 
-    [data-testid="collapsedControl"],
-    [data-testid="collapsedControl"] button {
-        min-width: 3.25rem !important;
-        min-height: 3.25rem !important;
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        width: 5rem !important;
+        height: 5rem !important;
         align-items: center;
         justify-content: center;
-        border: 2px solid #FFFFFF !important;
-        border-radius: 0.75rem !important;
+    }
+
+    [data-testid="collapsedControl"] button,
+    [data-testid="collapsedControl"] button[aria-label*="Expand"] {
+        box-sizing: border-box !important;
+        width: 5rem !important;
+        height: 5rem !important;
+        min-width: 5rem !important;
+        min-height: 5rem !important;
+        padding: 0.75rem !important;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #FFFFFF !important;
+        border-radius: 0.9rem !important;
         background: #F58220 !important;
-        box-shadow: 0 3px 12px rgba(16, 42, 67, 0.35) !important;
+        box-shadow:
+            0 0 0 4px rgba(245, 130, 32, 0.35),
+            0 4px 16px rgba(16, 42, 67, 0.5) !important;
         color: #102A43 !important;
     }
 
+    [data-testid="collapsedControl"] button[aria-label*="Expand"]::after {
+        content: " MENU";
+        margin-left: 0.35rem;
+        font-size: 0.82rem;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+    }
+
     [data-testid="collapsedControl"]:hover,
-    [data-testid="collapsedControl"] button:hover {
+    [data-testid="collapsedControl"] button:hover,
+    [data-testid="collapsedControl"] button[aria-label*="Expand"]:hover {
         background: #FFB15C !important;
         transform: scale(1.06);
     }
 
     [data-testid="collapsedControl"]:focus-visible,
     [data-testid="collapsedControl"] button:focus-visible,
+    [data-testid="collapsedControl"] button[aria-label*="Expand"]:focus-visible,
     [data-testid="stSidebar"] [data-testid="stSidebarHeader"] button:focus-visible {
         outline: 3px solid #102A43 !important;
         outline-offset: 2px;
+    }
+
+    [data-testid="collapsedControl"] button[aria-label*="Expand"] svg {
+        width: 2rem !important;
+        height: 2rem !important;
+        stroke-width: 2.5;
     }
 
     [data-testid="stSidebar"] [data-testid="stSidebarHeader"] button {
@@ -126,7 +157,7 @@ st.markdown(
         width: 100%;
         color: #FFFFFF;
         font-family: Impact, "Arial Black", Haettenschweiler, sans-serif;
-        font-size: 1.7rem;
+        font-size: clamp(1.2rem, 2.4vw, 1.7rem);
         font-weight: 900;
         font-style: italic;
         letter-spacing: 0.045em;
@@ -361,6 +392,35 @@ st.markdown(
     </style>
     """,
     unsafe_allow_html=True,
+)
+
+st.html(
+    """
+    <script>
+    if (!window.harrisonSidebarHandler) {
+        window.harrisonSidebarHandler = true;
+        document.addEventListener("click", (event) => {
+            const navLink = event.target.closest(
+                '[data-testid="stSidebarNavLink"]'
+            );
+            if (!navLink) {
+                return;
+            }
+
+            window.setTimeout(() => {
+                const sidebar = document.querySelector(
+                    '[data-testid="stSidebar"][aria-expanded="true"]'
+                );
+                const closeButton = sidebar?.querySelector(
+                    '[data-testid="stSidebarHeader"] button'
+                );
+                closeButton?.click();
+            }, 100);
+        });
+    }
+    </script>
+    """,
+    unsafe_allow_javascript=True,
 )
 
 render_site_banner()

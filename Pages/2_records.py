@@ -7,10 +7,8 @@ import requests
 import streamlit as st
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import (
-    get_spreadsheet_export_url,
-    get_spreadsheet_id,
-)
+from spreadsheet_config import get_optional_spreadsheet_id
+from workbook_source import load_workbook_bytes as load_source_workbook_bytes
 
 stop_if_site_offline()
 
@@ -58,13 +56,7 @@ RECORDS_CACHE_VERSION = 3
 
 @st.cache_data(ttl=3600)
 def load_workbook_bytes(spreadsheet_id, cache_version=RECORDS_CACHE_VERSION):
-    response = requests.get(
-        get_spreadsheet_export_url(spreadsheet_id),
-        params={"format": "xlsx"},
-        timeout=30,
-    )
-    response.raise_for_status()
-    return response.content
+    return load_source_workbook_bytes(spreadsheet_id)
 
 
 def _find_sheet(sheet_names, candidates, required_words):
@@ -154,7 +146,7 @@ st.title("All-Time Records")
 
 try:
     workbook = pd.ExcelFile(
-        BytesIO(load_workbook_bytes(get_spreadsheet_id()))
+        BytesIO(load_workbook_bytes(get_optional_spreadsheet_id()))
     )
 except (requests.RequestException, OSError, ValueError) as error:
     st.error("All-time records are temporarily unavailable.")

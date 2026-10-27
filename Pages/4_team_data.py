@@ -9,8 +9,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-    get_spreadsheet_export_url,
-    get_spreadsheet_id,
+    get_optional_spreadsheet_id,
 )
 from spreadsheet_data import (
     build_athlete_5k_chart_data,
@@ -19,6 +18,7 @@ from spreadsheet_data import (
     parse_workbook_years,
     sort_meets_by_date,
 )
+from workbook_source import load_workbook_bytes
 
 stop_if_site_offline()
 
@@ -75,13 +75,7 @@ def _build_runner_5k_index(years):
 
 @st.cache_data(ttl=3600)
 def load_spreadsheet_years(spreadsheet_id):
-    response = requests.get(
-        get_spreadsheet_export_url(spreadsheet_id),
-        params={"format": "xlsx"},
-        timeout=30,
-    )
-    response.raise_for_status(    )
-    parsed_data = parse_workbook_years(response.content)
+    parsed_data = parse_workbook_years(load_workbook_bytes(spreadsheet_id))
     return {
         "years": parsed_data["years"],
         "runner_5k_index": _build_runner_5k_index(parsed_data["years"]),
@@ -93,7 +87,7 @@ def load_spreadsheet_years(spreadsheet_id):
 st.title("Team Data")
 
 try:
-    year_data = load_spreadsheet_years(get_spreadsheet_id())
+    year_data = load_spreadsheet_years(get_optional_spreadsheet_id())
 except requests.RequestException as error:
     st.error("Team information is temporarily unavailable.")
     st.stop()

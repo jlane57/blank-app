@@ -57,7 +57,12 @@ def storage_configured():
     raw = get_configured_secret("GOOGLE_SERVICE_ACCOUNT_JSON")
     if raw is None or not isinstance(raw, str) or not raw.strip():
         return False
-    _service_account_credentials()
+    try:
+        _service_account_credentials()
+    except RuntimeError as error:
+        if str(error) == "Spreadsheet storage requires the google-auth dependency.":
+            return False
+        raise
     return True
 
 

@@ -7,11 +7,9 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import (
-    get_spreadsheet_export_url,
-    get_spreadsheet_id,
-)
+from spreadsheet_config import get_optional_spreadsheet_id
 from spreadsheet_data import build_race_totals, parse_workbook_years
+from workbook_source import load_workbook_bytes
 from gallery import get_gallery_entries
 
 stop_if_site_offline()
@@ -27,17 +25,6 @@ try:
     ][:6]
 except (KeyError, OSError, ValueError, RuntimeError, requests.RequestException):
     featured_images = []
-
-
-@st.cache_data(ttl=3600)
-def load_year_data(spreadsheet_id):
-    response = requests.get(
-        get_spreadsheet_export_url(spreadsheet_id),
-        params={"format": "xlsx"},
-        timeout=30,
-    )
-    response.raise_for_status()
-    return parse_workbook_years(response.content)
 
 
 hero_image = Path(__file__).resolve().parents[1] / "Images" / "group_huddle_home.jpg"
@@ -302,7 +289,9 @@ if featured_images:
                 st.caption(f"Photo: {image['photographer']}")
 
 try:
-    year_data = load_year_data(get_spreadsheet_id())
+    year_data = parse_workbook_years(
+        load_workbook_bytes(get_optional_spreadsheet_id())
+    )
 except requests.RequestException as error:
     st.error("Homepage information is temporarily unavailable.")
     totals = None

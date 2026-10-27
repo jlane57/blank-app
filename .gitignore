@@ -1,6 +1,7 @@
 .streamlit/secrets.toml
+*.xlsx
+*.xls
 site_status.json
-news.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

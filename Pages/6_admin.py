@@ -15,9 +15,8 @@ from meet_import import (
 from news import add_news, get_news, save_news
 from spreadsheet_config import (
     format_spreadsheet_error,
+    get_optional_spreadsheet_id,
     get_required_secret,
-    get_spreadsheet_export_url,
-    get_spreadsheet_id,
 )
 from spreadsheet_data import parse_workbook_years
 from spreadsheet_data import parse_race_time
@@ -28,6 +27,8 @@ from site_status import (
     get_site_status,
     save_site_status,
 )
+from spreadsheet_storage import storage_configured
+from workbook_source import load_workbook_bytes
 
 st.markdown(
     """
@@ -64,6 +65,20 @@ st.markdown(
         background: rgba(255, 248, 239, 0.5);
     }
 
+    [data-testid="stForm"] input,
+    [data-testid="stForm"] textarea,
+    [data-testid="stForm"] [data-baseweb="select"] > div {
+        border: 1px solid rgba(25, 57, 84, 0.4);
+        border-radius: 0.45rem;
+    }
+
+    [data-testid="stForm"] input:focus,
+    [data-testid="stForm"] textarea:focus,
+    [data-testid="stForm"] [data-baseweb="select"] > div:focus-within {
+        border-color: #F58220;
+        box-shadow: 0 0 0 1px #F58220;
+    }
+
     [data-testid="stExpander"] {
         border-color: rgba(25, 57, 84, 0.22);
         background: rgba(232, 241, 248, 0.38);
@@ -98,14 +113,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Admin Portal")
-st.markdown(
-    '<p class="admin-intro">Manage site availability, announcements, and reviewed meet imports.</p>',
-    unsafe_allow_html=True,
-)
-
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "news_authenticated" not in st.session_state:
+    st.session_state.news_authenticated = False
+
+st.title(
+    "News Portal"
+    if st.session_state.news_authenticated and not st.session_state.authenticated
+    else "Admin Portal"
+)
+st.markdown(
+    '<p class="admin-intro">Manage site availability, photos, and reviewed meet imports.</p>'
+    if not st.session_state.news_authenticated or st.session_state.authenticated
+    else '<p class="admin-intro">Publish and manage team news.</p>',
+    unsafe_allow_html=True,
+)
 
 
 def check_password():
@@ -124,15 +147,233 @@ def check_password():
             st.error("Access denied")
 
 
+def check_news_password():
+    with st.form("news_management_login"):
+        password = st.text_input("News management password", type="password")
+        submitted = st.form_submit_button("Sign In")
+
+    if submitted:
+        configured_password = get_required_secret("NEWS_ADMIN_PASSWORD").strip()
+        if len(configured_password) >= 2 and configured_password[0] == configured_password[-1] == '"':
+            configured_password = configured_password[1:-1]
+        if not configured_password:
+            st.error("NEWS_ADMIN_PASSWORD must contain a non-empty password.")
+            st.stop()
+        if password == configured_password:
+            st.session_state.news_authenticated = True
+            st.rerun()
+        elif password in {"67", "6767"}:
+            st.info("Heehee six seven. Still not the password though, nice try")
+        else:
+            st.error("Access denied")
+
+
+def render_news_management():
+    if "news_view" not in st.session_state:
+        st.session_state.news_view = "home"
+    if "news_flash" in st.session_state:
+        st.success(st.session_state.pop("news_flash"))
+
+    current_news = get_news()
+    if st.session_state.news_view == "home":
+        if st.button("← Sign out and exit", key="lock_news_management"):
+            st.session_state.news_authenticated = False
+            st.session_state.news_view = "home"
+            st.rerun()
+        st.subheader("News Management")
+        st.caption("Publish or review updates that appear on the public News page.")
+        action_columns = st.columns(2)
+        with action_columns[0]:
+            if st.button("Write new article", use_container_width=True):
+                st.session_state.news_view = "new"
+                st.rerun()
+        with action_columns[1]:
+            if st.button("Review previous articles", use_container_width=True):
+                st.session_state.news_view = "review"
+                st.rerun()
+        return
+
+    try:
+        news_meet_options = [("No meet", "")]
+        news_meet_options.extend(
+            load_image_destinations(get_optional_spreadsheet_id())[0]
+        )
+    except (OSError, RuntimeError, ValueError, KeyError, requests.RequestException):
+        news_meet_options = [("No meet", "")]
+    if st.button("← Back to News Management", key="back_to_news_home"):
+        st.session_state.news_view = "home"
+        st.rerun()
+
+    if st.session_state.news_view == "new":
+        st.subheader("Write New Article")
+        with st.form("publish_news"):
+            news_headline = st.text_input("Header", max_chars=160)
+            news_author = st.text_input("Author", max_chars=160, placeholder="Optional")
+            news_body = st.text_area("Story", max_chars=5000, height=140)
+            news_date = st.date_input("Published date", value=date.today())
+            news_image = st.file_uploader(
+                "Article image (optional)",
+                type=["jpg", "jpeg", "png", "webp"],
+                accept_multiple_files=False,
+                help="Drag an image here or click Browse files. Leave blank for no image.",
+            )
+            news_meet_label = st.selectbox(
+                "Tag to a meet (optional)",
+                [label for label, _ in news_meet_options],
+            )
+            publish_news = st.form_submit_button("Publish News")
+        if publish_news:
+            try:
+                image = None
+                if news_image is not None:
+                    image = upload_image(
+                        news_image.getvalue(),
+                        news_image.name,
+                        caption=news_headline,
+                        alt_text=news_headline,
+                        category="news",
+                    )
+                add_news(
+                    news_headline,
+                    news_body,
+                    news_date.isoformat(),
+                    image,
+                    news_author,
+                    dict(news_meet_options)[news_meet_label],
+                )
+                st.session_state.news_flash = "Article published!"
+                st.session_state.news_view = "home"
+                st.rerun()
+            except (ValueError, OSError, RuntimeError, requests.RequestException) as error:
+                st.error(str(error))
+        return
+
+    st.subheader("Review Previous Articles")
+    if current_news:
+        st.caption(f"{len(current_news)} published item(s)")
+        for index, entry in enumerate(current_news):
+            with st.expander(f"{entry['headline']} · {entry['published']}"):
+                current_image = entry.get("image") or {}
+                current_image_source = (
+                    current_image.get("display_url")
+                    or current_image.get("thumbnail_url")
+                )
+                if not current_image_source and current_image.get("file_id"):
+                    current_image_source = (
+                        "https://drive.google.com/thumbnail"
+                        f"?id={current_image['file_id']}&sz=w600"
+                    )
+                if current_image_source:
+                    st.image(current_image_source, width=180)
+                try:
+                    current_news_date = date.fromisoformat(entry["published"])
+                except ValueError:
+                    current_news_date = date.today()
+                with st.form(f"edit_news_{index}"):
+                    edited_headline = st.text_input(
+                        "Header",
+                        value=entry["headline"],
+                        max_chars=160,
+                    )
+                    edited_author = st.text_input(
+                        "Author",
+                        value=entry.get("author", ""),
+                        max_chars=160,
+                    )
+                    edited_body = st.text_area(
+                        "Story",
+                        value=entry["body"],
+                        max_chars=5000,
+                        height=140,
+                    )
+                    edited_date = st.date_input(
+                        "Published date",
+                        value=current_news_date,
+                    )
+                    edited_image = st.file_uploader(
+                        "Article image (optional)",
+                        type=["jpg", "jpeg", "png", "webp"],
+                        accept_multiple_files=False,
+                        help="Upload a replacement image or leave blank to keep the current image.",
+                    )
+                    edited_meet_label = st.selectbox(
+                        "Tag to a meet (optional)",
+                        [label for label, _ in news_meet_options],
+                        index=next(
+                            (
+                                meet_index
+                                for meet_index, (_, meet_id) in enumerate(news_meet_options)
+                                if meet_id == entry.get("meet_id", "")
+                            ),
+                            0,
+                        ),
+                    )
+                    save_edit = st.form_submit_button("Save Changes")
+                if save_edit:
+                    try:
+                        edited_image_value = entry.get("image")
+                        if edited_image is not None:
+                            edited_image_value = upload_image(
+                                edited_image.getvalue(),
+                                edited_image.name,
+                                caption=edited_headline,
+                                alt_text=edited_headline,
+                                category="news",
+                            )
+                        edited_entry = {
+                            **entry,
+                            "headline": edited_headline,
+                            "author": edited_author,
+                            "body": edited_body,
+                            "published": edited_date.isoformat(),
+                            "image": edited_image_value,
+                            "meet_id": dict(news_meet_options)[edited_meet_label],
+                        }
+                        save_news(
+                            current_news[:index]
+                            + [edited_entry]
+                            + current_news[index + 1 :],
+                            allow_delete=True,
+                        )
+                        st.session_state.news_flash = "Article published!"
+                        st.session_state.news_view = "home"
+                        st.rerun()
+                    except (
+                        ValueError,
+                        OSError,
+                        RuntimeError,
+                        requests.RequestException,
+                    ) as error:
+                        st.error(str(error))
+                if st.button("Delete", key=f"delete_news_{index}"):
+                    st.session_state.news_delete_index = index
+                    st.rerun()
+                if st.session_state.get("news_delete_index") == index:
+                    st.warning("Are you sure? This action is permanent!")
+                    confirm_columns = st.columns(2)
+                    with confirm_columns[0]:
+                        if st.button("Confirm delete", key=f"confirm_delete_news_{index}"):
+                            save_news(
+                                current_news[:index] + current_news[index + 1 :],
+                                allow_delete=True,
+                            )
+                            st.session_state.news_delete_index = None
+                            st.session_state.news_view = "home"
+                            st.session_state.news_flash = (
+                                f'"{entry["headline"]}" has been deleted'
+                            )
+                            st.rerun()
+                    with confirm_columns[1]:
+                        if st.button("Cancel", key=f"cancel_delete_news_{index}"):
+                            st.session_state.news_delete_index = None
+                            st.rerun()
+    else:
+        st.info("No news items have been published.")
+
+
 @st.cache_data(ttl=3600)
 def load_image_destinations(spreadsheet_id):
-    response = requests.get(
-        get_spreadsheet_export_url(spreadsheet_id),
-        params={"format": "xlsx"},
-        timeout=30,
-    )
-    response.raise_for_status()
-    workbook = parse_workbook_years(response.content)["years"]
+    workbook = parse_workbook_years(load_workbook_bytes(spreadsheet_id))["years"]
     meets = []
     athletes = {}
     for year, season in workbook.items():
@@ -153,10 +394,18 @@ def load_image_destinations(spreadsheet_id):
     )
 
 
-if not st.session_state.authenticated:
-    st.subheader("Sign in to continue")
-    st.caption("Admin controls are password protected.")
-    check_password()
+if not st.session_state.authenticated and not st.session_state.news_authenticated:
+    login_columns = st.columns(2)
+    with login_columns[0]:
+        st.markdown("#### Admin Portal")
+        st.caption("Website settings, imports, photos, and other administrative tools.")
+        check_password()
+    with login_columns[1]:
+        st.markdown("#### News Portal")
+        st.caption("Publish and manage news without opening the traditional admin tools.")
+        check_news_password()
+elif st.session_state.news_authenticated and not st.session_state.authenticated:
+    render_news_management()
 else:
     st.markdown(
         '<div class="admin-status">● Signed in · Admin access active</div>',
@@ -164,15 +413,15 @@ else:
     )
     if st.button("Sign Out", key="admin_sign_out"):
         st.session_state.authenticated = False
+        st.session_state.news_authenticated = False
         st.rerun()
 
     section_labels = {
         "availability": "Website Availability",
-        "news": "News",
         "photos": "Photo Uploads",
         "imports": "Import Meet Results",
     }
-    if "admin_section" not in st.session_state:
+    if st.session_state.get("admin_section") not in section_labels:
         st.session_state.admin_section = "availability"
 
     st.subheader("Admin Tools")
@@ -243,88 +492,28 @@ else:
                 st.error(f"Could not save website settings: {error}")
 
     with st.expander(
-        "News",
-        expanded=st.session_state.admin_section == "news",
-    ):
-        st.subheader("News")
-        st.caption("Publish updates that appear on the public News page.")
-        try:
-            news_meet_options = [("No meet", "")]
-            news_meet_options.extend(
-                load_image_destinations(get_spreadsheet_id())[0]
-            )
-        except (OSError, ValueError, KeyError, requests.RequestException):
-            news_meet_options = [("No meet", "")]
-        with st.form("publish_news"):
-            news_headline = st.text_input("Header", max_chars=160)
-            news_author = st.text_input("Author", max_chars=160, placeholder="Optional")
-            news_body = st.text_area("Story", max_chars=5000, height=140)
-            news_date = st.date_input("Published date", value=date.today())
-            news_image = st.file_uploader(
-                "Article image (optional)",
-                type=["jpg", "jpeg", "png", "webp"],
-                accept_multiple_files=False,
-                help="Drag an image here or click Browse files. Leave blank for no image.",
-            )
-            news_meet_label = st.selectbox(
-                "Tag to a meet (optional)",
-                [label for label, _ in news_meet_options],
-            )
-            publish_news = st.form_submit_button("Publish News")
-
-        if publish_news:
-            try:
-                image = None
-                if news_image is not None:
-                    image = upload_image(
-                        news_image.getvalue(),
-                        news_image.name,
-                        caption=news_headline,
-                        alt_text=news_headline,
-                        category="news",
-                    )
-                add_news(
-                    news_headline,
-                    news_body,
-                    news_date.isoformat(),
-                    image,
-                    news_author,
-                    dict(news_meet_options)[news_meet_label],
-                )
-                st.success("News item published.")
-                st.rerun()
-            except (ValueError, OSError, requests.RequestException) as error:
-                st.error(str(error))
-
-        current_news = get_news()
-        if current_news:
-            st.caption(f"{len(current_news)} published item(s)")
-            for index, entry in enumerate(current_news):
-                with st.expander(f"{entry['headline']} · {entry['published']}"):
-                    st.write(entry["body"])
-                    if st.button("Delete", key=f"delete_news_{index}"):
-                        save_news(
-                            current_news[:index] + current_news[index + 1 :],
-                            allow_delete=True,
-                        )
-                        st.success("News item deleted.")
-                        st.rerun()
-        else:
-            st.info("No news items have been published.")
-
-    with st.expander(
         "Photo Uploads",
         expanded=st.session_state.admin_section == "photos",
     ):
         st.subheader("Photo Uploads")
-        st.caption("Choose exactly where each uploaded image should appear.")
+        try:
+            storage_enabled = storage_configured()
+        except (ValueError, RuntimeError):
+            storage_enabled = False
+        if not storage_enabled:
+            st.info(
+                "Photo uploads are disabled for the first deployment. "
+                "Configure the Google service account and Drive folder before enabling them."
+            )
+        else:
+            st.caption("Choose exactly where each uploaded image should appear.")
         try:
             meet_destinations, athlete_destinations = load_image_destinations(
-                get_spreadsheet_id()
-            )
+                get_optional_spreadsheet_id()
+            ) if storage_enabled else ([], [])
         except (OSError, ValueError, KeyError, requests.RequestException):
             meet_destinations, athlete_destinations = [], []
-        with st.form("photo_upload"):
+        with st.form("photo_upload") if storage_enabled else st.container():
             photo = st.file_uploader(
                 "Image files",
                 type=["jpg", "jpeg", "png", "webp", "gif"],
@@ -363,7 +552,7 @@ else:
                 disabled=photo_category != "Home page",
                 key="gallery_featured",
             )
-            upload_submitted = st.form_submit_button("Upload Image")
+            upload_submitted = st.form_submit_button("Upload Image") if storage_enabled else False
         if upload_submitted:
             if not photo:
                 st.error("Choose an image first.")
@@ -389,7 +578,7 @@ else:
                         )
                     st.success(f"{len(photo)} image(s) uploaded and assigned.")
                     st.rerun()
-                except (OSError, ValueError, requests.RequestException) as error:
+                except (OSError, ValueError, RuntimeError, requests.RequestException) as error:
                     st.error(f"Could not upload image: {format_spreadsheet_error(error)}")
 
     with st.expander(
@@ -415,13 +604,7 @@ else:
             if not uploaded:
                 return
             try:
-                response = requests.get(
-                    get_spreadsheet_export_url(get_spreadsheet_id()),
-                    params={"format": "xlsx"},
-                    timeout=30,
-                )
-                response.raise_for_status()
-                workbook_data = response.content
+                workbook_data = load_workbook_bytes(get_optional_spreadsheet_id())
                 workbook_years = parse_workbook_years(workbook_data)["years"]
                 if not workbook_years:
                     raise ValueError("No supported roster year sheets were found.")

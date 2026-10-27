@@ -1,5 +1,7 @@
 from difflib import SequenceMatcher
+import html
 import re
+from pathlib import Path
 from zipfile import BadZipFile
 
 import pandas as pd
@@ -9,8 +11,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
 from spreadsheet_config import (
-    get_spreadsheet_export_url,
-    get_spreadsheet_id,
+    get_optional_spreadsheet_id,
 )
 from spreadsheet_data import parse_workbook_years, sort_meets_by_date
 from gallery import get_gallery_entries
@@ -22,6 +23,7 @@ from team_views import (
     randomized_team_order,
     TEAM_OPTIONS,
 )
+from workbook_source import load_workbook_bytes
 
 stop_if_site_offline()
 
@@ -110,13 +112,7 @@ def meet_matches_query(query, meet):
 
 @st.cache_data(ttl=3600)
 def load_spreadsheet_years(spreadsheet_id):
-    response = requests.get(
-        get_spreadsheet_export_url(spreadsheet_id),
-        params={"format": "xlsx"},
-        timeout=30,
-    )
-    response.raise_for_status()
-    parsed_data = parse_workbook_years(response.content)
+    parsed_data = parse_workbook_years(load_workbook_bytes(spreadsheet_id))
     return {
         "years": parsed_data["years"],
         "issues": parsed_data.get("issues", []),
@@ -124,7 +120,7 @@ def load_spreadsheet_years(spreadsheet_id):
 
 
 try:
-    year_data = load_spreadsheet_years(get_spreadsheet_id())
+    year_data = load_spreadsheet_years(get_optional_spreadsheet_id())
 except requests.RequestException as error:
     st.error("Meet information is temporarily unavailable.")
     st.stop()
@@ -279,7 +275,7 @@ if selected is not None:
             }
             and image["approved"].casefold() != "false"
         ][:10]
-    except (KeyError, OSError, ValueError, requests.RequestException):
+    except (KeyError, OSError, RuntimeError, ValueError, requests.RequestException):
         meet_images = []
     if meet_images:
         st.subheader("Meet Photos")
@@ -298,20 +294,81 @@ if selected is not None:
             entry for entry in get_news()
             if entry.get("meet_id") == meet.get("meet_id")
         ][:5]
-    except (KeyError, OSError, ValueError, requests.RequestException):
+    except (KeyError, OSError, RuntimeError, ValueError, requests.RequestException):
         meet_news = []
     if meet_news:
         st.subheader("Meet News")
-        for entry in meet_news:
+        selected_news_index = st.session_state.get("selected_meet_news")
+        selected_news_meet_id = st.session_state.get("selected_meet_news_meet_id")
+        current_meet_id = meet.get("meet_id")
+        if selected_news_meet_id != current_meet_id:
+            selected_news_index = None
+        if selected_news_index is not None and (
+            not isinstance(selected_news_index, int)
+            or selected_news_index < 0
+            or selected_news_index >= len(meet_news)
+        ):
+            st.session_state.selected_meet_news = None
+            st.rerun()
+
+        if selected_news_index is not None:
+            if st.button("← Back to Meet News"):
+                st.session_state.selected_meet_news = None
+                st.session_state.selected_meet_news_meet_id = None
+                st.rerun()
+            entry = meet_news[selected_news_index]
             article_image = entry.get("image") or {}
-            if article_image.get("display_url"):
-                st.image(
-                    article_image["display_url"],
-                    caption=entry["headline"],
-                    use_container_width=True,
-                )
-            st.markdown(f"**{entry['headline']}** · {entry['published']}")
+            image_source = (
+                article_image.get("display_url")
+                or article_image.get("thumbnail_url")
+            )
+            st.markdown(
+                f"**{html.escape(entry['headline'])}** · "
+                f"{html.escape(entry['published'])}",
+                unsafe_allow_html=True,
+            )
+            if image_source:
+                st.image(image_source, caption=entry["headline"], use_container_width=True)
+            if entry.get("author"):
+                st.caption(entry["author"])
             st.write(entry["body"])
+        else:
+            for index, entry in enumerate(meet_news):
+                article_image = entry.get("image") or {}
+                image_source = (
+                    article_image.get("display_url")
+                    or article_image.get("thumbnail_url")
+                    or str(
+                        Path(__file__).resolve().parents[1]
+                        / "Images"
+                        / "raiders_athletics_seal.jpeg"
+                    )
+                )
+                with st.container(border=True):
+                    image_column, content_column = st.columns(
+                        [1.25, 5],
+                        gap="medium",
+                        vertical_alignment="center",
+                    )
+                    with image_column:
+                        st.image(image_source, width=110)
+                    with content_column:
+                        st.markdown(
+                            (
+                                '<div class="news-card">'
+                                f'<div class="news-date">{html.escape(entry["published"])}</div>'
+                                f'<h3>{html.escape(entry["headline"])}</h3>'
+                                "</div>"
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        if st.button(
+                            "Read article",
+                            key=f"read_meet_news_{index}",
+                        ):
+                            st.session_state.selected_meet_news = index
+                            st.session_state.selected_meet_news_meet_id = current_meet_id
+                            st.rerun()
 else:
     st.title("Event Database")
     search = st.text_input(

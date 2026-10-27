@@ -9,8 +9,9 @@ import streamlit as st
 from openpyxl.utils.exceptions import InvalidFileException
 
 from site_status import stop_if_site_offline
-from spreadsheet_config import get_spreadsheet_export_url, get_spreadsheet_id
+from spreadsheet_config import get_optional_spreadsheet_id
 from spreadsheet_data import parse_workbook_years
+from workbook_source import load_workbook_bytes
 
 
 stop_if_site_offline()
@@ -44,13 +45,7 @@ st.markdown(
 
 @st.cache_data(ttl=3600)
 def load_interactive_data(spreadsheet_id):
-    response = requests.get(
-        get_spreadsheet_export_url(spreadsheet_id),
-        params={"format": "xlsx"},
-        timeout=30,
-    )
-    response.raise_for_status()
-    parsed = parse_workbook_years(response.content)
+    parsed = parse_workbook_years(load_workbook_bytes(spreadsheet_id))
     rows = []
     for year, season in parsed["years"].items():
         meets = {
@@ -106,6 +101,14 @@ def _format_axis_time(seconds):
     return f"{minutes:02d}:{remainder:02d}"
 
 
+def _scaled_axis_range(values):
+    minimum = float(min(values))
+    maximum = float(max(values))
+    spread = maximum - minimum
+    padding = max(spread * 0.15, 1)
+    return [max(0, minimum - padding), maximum + padding]
+
+
 def _time_axis_ticks(values):
     value_range = max(values) - min(values)
     if value_range >= 300:
@@ -128,9 +131,9 @@ def _top_five_average(results):
 
 header_columns = st.columns([3, 1])
 with header_columns[0]:
-    st.title("Data Interactive")
+    st.title("Data Interactive (Beta)")
 try:
-    data, issues = load_interactive_data(get_spreadsheet_id())
+    data, issues = load_interactive_data(get_optional_spreadsheet_id())
 except requests.RequestException:
     st.error("Interactive data is temporarily unavailable.")
     st.stop()
@@ -315,7 +318,7 @@ if view == "Athlete Comparison":
                     tickmode="array",
                     tickvals=tick_values,
                     ticktext=tick_text,
-                    title="5K time (lower is faster)",
+                    title="5K time",
                     gridcolor="#D9E2EC",
                 )
                 figure.update_xaxes(
@@ -341,14 +344,18 @@ if view == "Athlete Comparison":
                 )
                 st.plotly_chart(figure, width="stretch")
 elif view == "Meet Comparison":
-    meets = sorted(filtered["Meet"].unique(), key=str.casefold)
+    filtered = filtered.copy()
+    filtered["Meet Label"] = (
+        filtered["Meet"] + " (" + filtered["Year"].astype(str) + ")"
+    )
+    meets = sorted(filtered["Meet Label"].unique(), key=str.casefold)
     selected_meets = st.multiselect(
         "Add meets to compare (click the box, then select names)",
         meets,
         default=[],
         key="interactive_meets",
     )
-    meet_data = filtered[filtered["Meet"].isin(selected_meets)]
+    meet_data = filtered[filtered["Meet Label"].isin(selected_meets)]
     if meet_data.empty:
         st.info("Choose at least one meet.")
     else:
@@ -357,7 +364,7 @@ elif view == "Meet Comparison":
             summary_rows.append(
                 {
                     "Year": year,
-                    "Meet": meet,
+                    "Meet": f"{meet} ({year})",
                     "Results": len(results),
                     "Athletes": results["Athlete"].nunique(),
                     "Fastest": results["Seconds"].min(),
@@ -387,11 +394,15 @@ elif view == "Meet Comparison":
             var_name="Measure",
             value_name="Seconds",
         )
-        chart["Label"] = chart["Seconds"].map(_format_axis_time)
+        chart["Label"] = chart["Seconds"].map(_format_seconds)
+        axis_range = _scaled_axis_range(chart["Seconds"])
+        chart["Base"] = axis_range[0]
+        chart["Height"] = chart["Seconds"] - chart["Base"]
         figure = px.bar(
             chart,
             x="Meet",
-            y="Seconds",
+            y="Height",
+            base="Base",
             color="Measure",
             pattern_shape="Year",
             text="Label",
@@ -403,7 +414,8 @@ elif view == "Meet Comparison":
             tickmode="array",
             tickvals=tick_values,
             ticktext=tick_text,
-            title="5K time (lower is faster)",
+            range=axis_range,
+            title="5K time",
             gridcolor="#D9E2EC",
         )
         figure.update_traces(
@@ -435,10 +447,10 @@ elif view == "Meet Comparison":
                 ],
                 showlegend=False,
                 hovertemplate=(
-                    f"Meet: {row['Meet']} ({row['Year']})"
-                    "<br>Range: %{base}–%{customdata}<extra></extra>"
+                    f"Meet: {row['Meet']}"
+                    f"<br>Range: {_format_seconds(row['Minimum'])}"
+                    f"–{_format_seconds(row['Maximum'])}<extra></extra>"
                 ),
-                customdata=[row["Maximum"]],
             )
         range_figure.update_yaxes(
             tickmode="array",
@@ -448,7 +460,7 @@ elif view == "Meet Comparison":
             ticktext=_time_axis_ticks(
                 summary[["Minimum", "Maximum"]].to_numpy().ravel()
             )[1],
-            title="Result range (lower is faster)",
+            title="Result range",
             gridcolor="#D9E2EC",
         )
         range_figure.update_layout(
@@ -460,10 +472,6 @@ elif view == "Meet Comparison":
         )
         st.subheader("Result range by meet")
         st.plotly_chart(range_figure, width="stretch")
-        st.caption(
-            "The table includes each meet's full result range; top-five averages use "
-            "the five fastest recorded results under the active filters."
-        )
 
 elif view == "Year Comparison":
     season_summary = (
@@ -510,12 +518,14 @@ elif view == "Year Comparison":
     season_chart = season_summary.rename(
         columns={"Top 5 Average": "Seconds"}
     )[["Year", "Seconds"]]
+    season_chart["Time"] = season_chart["Seconds"].map(_format_seconds)
     figure = px.line(
         season_chart,
         x="Year",
         y="Seconds",
         markers=True,
         line_shape="spline",
+        custom_data=["Time"],
         color_discrete_sequence=px.colors.qualitative.Bold,
     )
     tick_values, tick_text = _time_axis_ticks(
@@ -525,10 +535,13 @@ elif view == "Year Comparison":
         tickmode="array",
         tickvals=tick_values,
         ticktext=tick_text,
-        title="Race time (lower is faster)",
+        title="Race time",
         gridcolor="#D9E2EC",
     )
-    figure.update_traces(line={"smoothing": 0.5})
+    figure.update_traces(
+        hovertemplate="Year: %{x}<br>Time: %{customdata[0]}<extra></extra>",
+        line={"smoothing": 0.5},
+    )
     figure.update_layout(
         height=450,
         template="plotly_white",

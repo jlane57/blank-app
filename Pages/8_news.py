@@ -1,6 +1,7 @@
 import html
 from pathlib import Path
 
+import requests
 import streamlit as st
 
 from gallery import get_gallery_entries
@@ -100,7 +101,7 @@ else:
                 f"?id={image['file_id']}&sz=w160"
             )
         thumbnail_source = image_source or str(
-            Path(__file__).resolve().parents[1] / "Images" / "raiders_H_logo.png"
+            Path(__file__).resolve().parents[1] / "Images" / "raiders_athletics_seal.jpeg"
         )
         image_alt = image.get("alt_text") or entry["headline"]
 

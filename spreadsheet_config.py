@@ -30,6 +30,27 @@ def get_required_secret(name):
     return value
 
 
+def get_optional_secret(name):
+    value = get_configured_secret(name)
+    if value is None or not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
+
+
+def get_optional_spreadsheet_id():
+    spreadsheet_id = get_optional_secret("SPREADSHEET_ID")
+    if spreadsheet_id is None:
+        return None
+    if len(spreadsheet_id) >= 2 and spreadsheet_id[0] == spreadsheet_id[-1] == '"':
+        spreadsheet_id = spreadsheet_id[1:-1].strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", spreadsheet_id):
+        raise ValueError(
+            "SPREADSHEET_ID must contain only the Google Sheets document ID, "
+            "without quotes or the full spreadsheet URL."
+        )
+    return spreadsheet_id
+
+
 def get_spreadsheet_id():
     spreadsheet_id = get_required_secret("SPREADSHEET_ID").strip()
     if len(spreadsheet_id) >= 2 and spreadsheet_id[0] == spreadsheet_id[-1] == '"':
