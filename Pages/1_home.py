@@ -269,7 +269,8 @@ st.markdown(
             <h1>Welcome to Harrison Cross Country!</h1>
             <div class="home-hero-divider"></div>
             <p>Check out results and stats for the entire team using the navigation bar on the left</p>
-            <p>Past times are still being added</p>
+            <div class="home-hero-divider"></div>
+            <p>Past times are still being added - thanks for your patience!</p>
         </div>
     </section>
     """,
