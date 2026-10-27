@@ -265,10 +265,10 @@ st.markdown(
     </style>
     <section class="home-hero">
         <div class="home-hero-content">
-            <div class="home-hero-kicker">Boys' and Girls' Teams</div>
+            <div class="home-hero-kicker">All New Website</div>
             <h1>Welcome to Harrison Cross Country!</h1>
             <div class="home-hero-divider"></div>
-            <p>View results and stats for both teams</p>
+            <p>View results and stats for the boys and girls teams</p>
         </div>
     </section>
     """,
