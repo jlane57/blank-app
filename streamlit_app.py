@@ -96,12 +96,12 @@ st.markdown(
         padding: 0.75rem !important;
         align-items: center;
         justify-content: center;
-        border: 3px solid #FFFFFF !important;
-        border-radius: 0.9rem !important;
+        border: 2px solid rgba(255, 255, 255, 0.8) !important;
+        border-radius: 0.65rem !important;
         background: #F58220 !important;
         box-shadow:
-            0 0 0 4px rgba(245, 130, 32, 0.35),
-            0 4px 16px rgba(16, 42, 67, 0.5) !important;
+            0 0 0 6px #193954,
+            0 2px 8px rgba(16, 42, 67, 0.3) !important;
         color: #102A43 !important;
     }
 
