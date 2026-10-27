@@ -93,10 +93,10 @@ st.markdown(
     button[data-testid="stExpandSidebarButton"],
     [data-testid="collapsedControl"] button[aria-label*="Expand"] {
         box-sizing: border-box !important;
-        width: 4rem !important;
-        height: 4rem !important;
-        min-width: 4rem !important;
-        min-height: 4rem !important;
+        width: 5rem !important;
+        height: 3rem !important;
+        min-width: 5rem !important;
+        min-height: 3rem !important;
         padding: 0.5rem !important;
         align-items: center;
         justify-content: center;
