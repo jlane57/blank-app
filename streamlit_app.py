@@ -70,7 +70,8 @@ st.markdown(
         pointer-events: none !important;
     }
 
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
         position: fixed !important;
         top: 0.75rem !important;
@@ -78,7 +79,8 @@ st.markdown(
         z-index: 10000 !important;
     }
 
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"] {
         display: flex !important;
         width: 5rem !important;
         height: 5rem !important;
@@ -87,6 +89,8 @@ st.markdown(
     }
 
     [data-testid="collapsedControl"] button,
+    [data-testid="stSidebarCollapsedControl"] button,
+    button[data-testid="stExpandSidebarButton"],
     [data-testid="collapsedControl"] button[aria-label*="Expand"] {
         box-sizing: border-box !important;
         width: 5rem !important;
@@ -105,6 +109,7 @@ st.markdown(
         color: #102A43 !important;
     }
 
+    button[data-testid="stExpandSidebarButton"]::after,
     [data-testid="collapsedControl"] button[aria-label*="Expand"]::after {
         content: " MENU";
         margin-left: 0.35rem;
@@ -115,6 +120,8 @@ st.markdown(
 
     [data-testid="collapsedControl"]:hover,
     [data-testid="collapsedControl"] button:hover,
+    [data-testid="stSidebarCollapsedControl"] button:hover,
+    button[data-testid="stExpandSidebarButton"]:hover,
     [data-testid="collapsedControl"] button[aria-label*="Expand"]:hover {
         background: #FFB15C !important;
         transform: scale(1.06);
@@ -122,12 +129,16 @@ st.markdown(
 
     [data-testid="collapsedControl"]:focus-visible,
     [data-testid="collapsedControl"] button:focus-visible,
+    [data-testid="stSidebarCollapsedControl"] button:focus-visible,
+    button[data-testid="stExpandSidebarButton"]:focus-visible,
     [data-testid="collapsedControl"] button[aria-label*="Expand"]:focus-visible,
     [data-testid="stSidebar"] [data-testid="stSidebarHeader"] button:focus-visible {
         outline: 3px solid #102A43 !important;
         outline-offset: 2px;
     }
 
+    [data-testid="stSidebarCollapsedControl"] button svg,
+    button[data-testid="stExpandSidebarButton"] svg,
     [data-testid="collapsedControl"] button[aria-label*="Expand"] svg {
         width: 2rem !important;
         height: 2rem !important;
