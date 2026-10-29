@@ -10,36 +10,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .site-wide-banner {
-        position: relative;
-        z-index: 1000;
-        box-sizing: border-box;
-        width: 100vw;
-        margin: -3rem 0 1.5rem -3rem;
-        padding: 1rem clamp(1rem, 4vw, 4rem);
-        border-bottom: 5px solid #F58220;
-        background: #102A43;
-        color: #FFFFFF;
-        font-size: clamp(1rem, 1.4vw, 1.2rem);
-        font-weight: 800;
-        line-height: 1.4;
-        text-align: center;
-        overflow-wrap: anywhere;
-    }
-
-    @media (min-width: 769px) {
-        body:has([data-testid="stSidebar"][aria-expanded="true"]) .site-wide-banner {
-            width: calc(100vw - 21rem);
-            margin-left: 0;
-        }
-
-        body:has([data-testid="stSidebar"][aria-expanded="true"]):has(.home-hero)
-        .site-wide-banner {
-            margin-top: 0;
-            margin-left: 21rem;
-        }
-    }
-
     .stApp {
         color: #102A43;
         background:
@@ -388,13 +358,6 @@ st.markdown(
     }
 
     @media (max-width: 640px) {
-        .site-wide-banner {
-            width: calc(100vw - 2rem);
-            margin: -2.5rem -1rem 1.25rem;
-            padding: 0.9rem 1rem;
-            font-size: 0.98rem;
-        }
-
         [data-testid="stAppViewContainer"] > .main [data-testid="stMainBlockContainer"] {
             padding: 2.5rem 1.5rem 2rem;
         }
@@ -427,6 +390,37 @@ st.html(
                 closeButton?.click();
             }, 100);
         });
+    }
+
+    if (!window.harrisonBannerSync) {
+        window.harrisonBannerSync = true;
+        let bannerFrame = null;
+        const syncBannerHeight = () => {
+            bannerFrame = null;
+            const height = parseFloat(
+                window.getComputedStyle(document.body, "::before").height
+            );
+            if (Number.isFinite(height) && height > 0) {
+                document.documentElement.style.setProperty(
+                    "--banner-h",
+                    height + "px"
+                );
+            } else {
+                document.documentElement.style.removeProperty("--banner-h");
+            }
+        };
+        const queueBannerSync = () => {
+            if (bannerFrame === null) {
+                bannerFrame = window.requestAnimationFrame(syncBannerHeight);
+            }
+        };
+        window.addEventListener("resize", queueBannerSync);
+        window.addEventListener("load", queueBannerSync);
+        new MutationObserver(queueBannerSync).observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+        queueBannerSync();
     }
     </script>
     """,
