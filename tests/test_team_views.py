@@ -24,11 +24,46 @@ class TeamViewTests(unittest.TestCase):
     def test_available_team_selections_use_division_tabs_with_bold_times(self):
         results = [
             {"team": "B", "is_varsity": True},
+            {"team": "B", "is_varsity": False},
+            {"team": "G", "is_varsity": True},
             {"team": "G", "is_varsity": False},
         ]
         self.assertEqual(
             set(available_team_selections(results)),
             {"B_VARSITY", "B_JV", "G_VARSITY", "G_JV"},
+        )
+
+    def test_gender_without_bold_times_gets_one_tab_while_other_splits(self):
+        results = [
+            {"team": "B", "is_varsity": True},
+            {"team": "B", "is_varsity": False},
+            {"team": "G", "is_varsity": False},
+            {"team": "G", "is_varsity": False},
+        ]
+        self.assertEqual(
+            set(available_team_selections(results)),
+            {"B_VARSITY", "B_JV", "G"},
+        )
+
+    def test_girls_split_while_boys_have_no_bold_times(self):
+        results = [
+            {"team": "B", "is_varsity": False},
+            {"team": "G", "is_varsity": True},
+            {"team": "G", "is_varsity": False},
+        ]
+        self.assertEqual(
+            set(available_team_selections(results)),
+            {"B", "G_VARSITY", "G_JV"},
+        )
+
+    def test_filter_results_single_gender_tab_keeps_every_entry(self):
+        results = [
+            {"team": "G", "is_varsity": False, "name": "A"},
+            {"team": "G", "is_varsity": False, "name": "B"},
+        ]
+        self.assertEqual(
+            [row["name"] for row in filter_results(results, "G")],
+            ["A", "B"],
         )
 
     def test_filter_results_separates_team_and_division(self):

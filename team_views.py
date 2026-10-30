@@ -28,12 +28,29 @@ def filter_athletes(athletes, team=None):
 
 
 def available_team_selections(results):
-    """Return gender tabs unless bold times identify a varsity/JV split."""
-    if not any(result.get("is_varsity") is True for result in results):
-        if random.SystemRandom().choice((True, False)):
-            return ["B", "G"]
-        return ["G", "B"]
-    return randomized_team_order()
+    """Return the result tabs to show for a meet.
+
+    Each gender is handled on its own: if at least one of its athletes is bold
+    (varsity) in the meet, it gets Varsity and JV tabs. If none are bold there
+    is no way to tell varsity from JV, so it gets a single tab ("Boys" or
+    "Girls") listing everyone instead of putting every entry under JV.
+    """
+    genders = ["B", "G"]
+    if random.SystemRandom().choice((True, False)):
+        genders.reverse()
+
+    selections = []
+    for gender in genders:
+        has_varsity = any(
+            str(result.get("team", "")).upper() == gender
+            and result.get("is_varsity") is True
+            for result in results
+        )
+        if has_varsity:
+            selections.extend((f"{gender}_VARSITY", f"{gender}_JV"))
+        else:
+            selections.append(gender)
+    return selections
 
 
 def randomized_team_order():
