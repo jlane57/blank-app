@@ -82,7 +82,7 @@ st.markdown(
         min-width: 0;
         box-sizing: border-box;
         margin: 0;
-        padding: 1rem clamp(1rem, 3vw, 3rem) 2rem;
+        padding: 1rem clamp(0.25rem, 1.5vw, 1.5rem) 2rem;
         position: relative;
     }}
 
@@ -108,7 +108,7 @@ st.markdown(
         border-radius: 0.5rem;
         background: rgba(255, 255, 255, 0.4);
         text-align: center;
-        transform: translateY(-1rem);
+        transform: translateY(-2.5rem);
     }}
 
     .home-hero-kicker {{
@@ -173,7 +173,7 @@ st.markdown(
         }}
 
         body:has([data-testid="stSidebar"][aria-expanded="true"]) .home-hero-content {{
-            transform: translate(10.5rem, -1rem);
+            transform: translate(10.5rem, -2.5rem);
         }}
 
         body:has([data-testid="stSidebar"][aria-expanded="true"]) .home-disclaimer,
