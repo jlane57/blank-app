@@ -125,94 +125,17 @@ def save_site_status(
             temp_path.unlink()
 
 
-def _css_string(text):
-    """Escape text so it can sit safely inside a double-quoted CSS string."""
-    escaped = []
-    for char in str(text):
-        if char in ('"', "\\"):
-            escaped.append("\\" + char)
-        elif char in ("<", ">", "&"):
-            escaped.append(f"\\{ord(char):x} ")
-        elif char in ("\n", "\r"):
-            escaped.append("\\A ")
-        else:
-            escaped.append(char)
-    return "".join(escaped)
-
-
 def render_site_banner():
     status = get_site_status()
-    if not status["banner_enabled"]:
-        return
-
-    message = status["banner_message"]
-    css_message = _css_string(message)
-    # The visible banner is drawn on body::before so it is pinned to the very
-    # top of the browser window and spans the full width, whatever Streamlit
-    # container it would otherwise sit in. Everything else is pushed down by
-    # --banner-h (measured in streamlit_app.py) so nothing is covered.
-    st.markdown(
-        f"""
-        <style>
-        :root {{
-            --banner-h: 3.5rem;
-        }}
-
-        html body::before {{
-            content: "{css_message}";
-            content: "{css_message}" / "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 2147483000;
-            box-sizing: border-box;
-            width: 100%;
-            margin: 0;
-            padding: 0.9rem clamp(1rem, 4vw, 4rem);
-            border-bottom: 5px solid #F58220;
-            background: #102A43;
-            color: #FFFFFF;
-            font-size: clamp(1rem, 1.4vw, 1.2rem);
-            font-weight: 800;
-            line-height: 1.4;
-            text-align: center;
-            overflow-wrap: anywhere;
-        }}
-
-        html body .stApp {{
-            box-sizing: border-box;
-            padding-top: var(--banner-h);
-        }}
-
-        html body [data-testid="stHeader"] {{
-            top: var(--banner-h) !important;
-        }}
-
-        html body [data-testid="stSidebar"] {{
-            top: var(--banner-h) !important;
-            height: calc(100vh - var(--banner-h)) !important;
-            height: calc(100dvh - var(--banner-h)) !important;
-        }}
-
-        html body [data-testid="collapsedControl"],
-        html body [data-testid="stSidebarCollapsedControl"] {{
-            top: calc(var(--banner-h) + 1.5rem) !important;
-        }}
-
-        .site-wide-banner {{
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-        }}
-        </style>
-        <div class="site-wide-banner" role="status">{escape(message)}</div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if status["banner_enabled"]:
+        st.markdown(
+            (
+                '<div class="site-wide-banner" role="status">'
+                f"{escape(status['banner_message'])}"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 def stop_if_site_offline():

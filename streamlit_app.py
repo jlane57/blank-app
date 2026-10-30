@@ -10,6 +10,56 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    :root {
+        --banner-h: 3.8rem;
+    }
+
+    .site-wide-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 2147483000;
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        padding: 0.9rem clamp(1rem, 4vw, 4rem);
+        border-bottom: 5px solid #F58220;
+        background: #102A43;
+        color: #FFFFFF;
+        font-size: clamp(1rem, 1.4vw, 1.2rem);
+        font-weight: 800;
+        line-height: 1.4;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    [data-testid="stElementContainer"]:has(.site-wide-banner) {
+        position: static;
+        height: 0;
+        margin: 0;
+    }
+
+    body:has(.site-wide-banner) .stApp {
+        box-sizing: border-box;
+        padding-top: var(--banner-h);
+    }
+
+    body:has(.site-wide-banner) [data-testid="stHeader"] {
+        top: var(--banner-h) !important;
+    }
+
+    body:has(.site-wide-banner) [data-testid="stSidebar"] {
+        top: var(--banner-h) !important;
+        height: calc(100vh - var(--banner-h)) !important;
+        height: calc(100dvh - var(--banner-h)) !important;
+    }
+
+    body:has(.site-wide-banner) [data-testid="collapsedControl"],
+    body:has(.site-wide-banner) [data-testid="stSidebarCollapsedControl"] {
+        top: calc(var(--banner-h) + 1.5rem) !important;
+    }
+
     .stApp {
         color: #102A43;
         background:
@@ -397,10 +447,9 @@ st.html(
         let bannerFrame = null;
         const syncBannerHeight = () => {
             bannerFrame = null;
-            const height = parseFloat(
-                window.getComputedStyle(document.body, "::before").height
-            );
-            if (Number.isFinite(height) && height > 0) {
+            const banner = document.querySelector(".site-wide-banner");
+            const height = banner ? banner.getBoundingClientRect().height : 0;
+            if (height > 0) {
                 document.documentElement.style.setProperty(
                     "--banner-h",
                     height + "px"
