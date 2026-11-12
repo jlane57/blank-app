@@ -1,6 +1,6 @@
-pandas==3.1.0
+pandas==3.1.1
 plotly==7.1.0
 openpyxl==3.1.5
-pypdf==6.21.3
+pypdf==7.0.0
 pytesseract==0.3.13
-google-auth==2.62.0
+google-auth==2.62.1
