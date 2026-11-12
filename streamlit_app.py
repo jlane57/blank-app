@@ -84,7 +84,7 @@ st.markdown(
         border-right: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    [data-testid="stSidebar"][aria-expanded="false"] {
+    [data-testid="stSidebar"]:is([aria-expanded="false"], [data-collapsed="true"]) {
         transform: translateX(-100%) !important;
         visibility: hidden !important;
         pointer-events: none !important;
@@ -254,7 +254,7 @@ st.markdown(
         opacity: 0.75;
     }
 
-    [data-testid="stAppViewContainer"] > .main [data-testid="stMainBlockContainer"] {
+    [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {
         box-sizing: border-box;
         width: min(1200px, calc(100% - 6rem));
         max-width: none;
@@ -269,7 +269,7 @@ st.markdown(
     }
 
     @media (min-width: 769px) {
-        body:has([data-testid="stSidebar"][aria-expanded="true"])
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"]))
         [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"]:not(:has(.home-hero)) {
             box-sizing: border-box !important;
             width: min(1200px, calc(100vw - 24rem)) !important;
@@ -278,7 +278,7 @@ st.markdown(
             margin-right: 3rem !important;
         }
 
-        body:has([data-testid="stSidebar"][aria-expanded="false"])
+        body:has([data-testid="stSidebar"]:is([aria-expanded="false"], [data-collapsed="true"]))
         [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"]:not(:has(.home-hero)) {
             box-sizing: border-box !important;
             width: min(1200px, calc(100vw - 6rem)) !important;
@@ -297,12 +297,12 @@ st.markdown(
         color: #102A43;
     }
 
-    .main h1 {
+    :is(.main, [data-testid="stMain"]) h1 {
         padding: 0 0 0.6rem;
         border-bottom: 8px solid #F58220;
     }
 
-    .main h2 {
+    :is(.main, [data-testid="stMain"]) h2 {
         padding: 0.65rem 0.9rem;
         color: #102A43;
         border: 0;
@@ -312,7 +312,7 @@ st.markdown(
         background: rgba(245, 130, 32, 0.08);
     }
 
-    .main hr {
+    :is(.main, [data-testid="stMain"]) hr {
         border-top: 2px dashed #F58220;
         opacity: 1;
     }
@@ -374,11 +374,11 @@ st.markdown(
         accent-color: #F58220;
     }
 
-    .main a {
+    :is(.main, [data-testid="stMain"]) a {
         color: #102A43;
     }
 
-    .main a:hover {
+    :is(.main, [data-testid="stMain"]) a:hover {
         color: #B94E00;
     }
 
@@ -408,7 +408,7 @@ st.markdown(
     }
 
     @media (max-width: 640px) {
-        [data-testid="stAppViewContainer"] > .main [data-testid="stMainBlockContainer"] {
+        [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {
             padding: 2.5rem 1.5rem 2rem;
         }
     }
@@ -432,7 +432,7 @@ st.html(
 
             window.setTimeout(() => {
                 const sidebar = document.querySelector(
-                    '[data-testid="stSidebar"][aria-expanded="true"]'
+                    '[data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])'
                 );
                 const closeButton = sidebar?.querySelector(
                     '[data-testid="stSidebarHeader"] button'

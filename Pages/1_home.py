@@ -32,7 +32,7 @@ image_data = b64encode(hero_image.read_bytes()).decode("ascii")
 st.markdown(
     f"""
     <style>
-    [data-testid="stAppViewContainer"] > .main [data-testid="stMainBlockContainer"] {{
+    [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {{
         width: 100% !important;
         max-width: none !important;
         padding-left: 0 !important;
@@ -163,21 +163,21 @@ st.markdown(
     }}
 
     @media (min-width: 769px) {{
-        body:has([data-testid="stSidebar"][aria-expanded="true"]) .stApp::before {{
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .stApp::before {{
             inset: 0 0 0 21rem;
         }}
 
-        body:has([data-testid="stSidebar"][aria-expanded="true"]) .home-hero::after {{
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-hero::after {{
             left: calc(50% + 10.5rem);
             width: calc(100% - 21rem);
         }}
 
-        body:has([data-testid="stSidebar"][aria-expanded="true"]) .home-hero-content {{
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-hero-content {{
             transform: translate(10.5rem, -2.5rem);
         }}
 
-        body:has([data-testid="stSidebar"][aria-expanded="true"]) .home-disclaimer,
-        body:has([data-testid="stSidebar"][aria-expanded="true"]) .home-placeholders {{
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-disclaimer,
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-placeholders {{
             position: relative;
             left: 10.5rem;
         }}
@@ -213,7 +213,7 @@ st.markdown(
     }}
 
     @media (max-width: 768px) {{
-        [data-testid="stAppViewContainer"] > .main [data-testid="stMainBlockContainer"] {{
+        [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {{
             padding-left: 1rem !important;
             padding-right: 1rem !important;
         }}
