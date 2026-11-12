@@ -269,7 +269,7 @@ st.markdown(
     }
 
     @media (min-width: 769px) {
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"]))
+        html[data-hxc-sidebar="open"]
         [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"]:not(:has(.home-hero)) {
             box-sizing: border-box !important;
             width: min(1200px, calc(100vw - 24rem)) !important;
@@ -278,7 +278,7 @@ st.markdown(
             margin-right: 3rem !important;
         }
 
-        body:has([data-testid="stSidebar"]:is([aria-expanded="false"], [data-collapsed="true"]))
+        html[data-hxc-sidebar="closed"]
         [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"]:not(:has(.home-hero)) {
             box-sizing: border-box !important;
             width: min(1200px, calc(100vw - 6rem)) !important;
@@ -436,15 +436,49 @@ st.html(
             }
 
             window.setTimeout(() => {
-                const sidebar = document.querySelector(
-                    '[data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])'
-                );
-                const closeButton = sidebar?.querySelector(
-                    '[data-testid="stSidebarHeader"] button'
-                );
+                if (document.documentElement.dataset.hxcSidebar !== "open") {
+                    return;
+                }
+                const sidebar = document.querySelector('[data-testid="stSidebar"]');
+                const closeButton =
+                    sidebar?.querySelector('[data-testid="stSidebarHeader"] button') ||
+                    sidebar?.querySelector('[data-testid="stSidebarCollapseButton"] button');
                 closeButton?.click();
             }, 100);
         });
+    }
+
+    // Measure whether the sidebar is actually visible instead of trusting any
+    // Streamlit attribute (aria-expanded, data-collapsed, ...), which changes
+    // between releases. CSS keys off html[data-hxc-sidebar="open|closed"].
+    if (!window.harrisonSidebarState) {
+        window.harrisonSidebarState = true;
+        const syncSidebarState = () => {
+            const sidebar = document.querySelector('[data-testid="stSidebar"]');
+            let state = "closed";
+            if (sidebar) {
+                const rect = sidebar.getBoundingClientRect();
+                const hidden = getComputedStyle(sidebar).visibility === "hidden";
+                if (!hidden && rect.width > 40 && rect.right > 40) {
+                    state = "open";
+                }
+            }
+            if (document.documentElement.dataset.hxcSidebar !== state) {
+                document.documentElement.dataset.hxcSidebar = state;
+            }
+        };
+        window.addEventListener("resize", syncSidebarState);
+        window.addEventListener("load", syncSidebarState);
+        document.addEventListener("transitionend", syncSidebarState, true);
+        document.addEventListener("click", () => window.setTimeout(syncSidebarState, 350), true);
+        new MutationObserver(syncSidebarState).observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["aria-expanded", "data-collapsed", "class", "style"],
+        });
+        window.setInterval(syncSidebarState, 500);
+        syncSidebarState();
     }
 
     if (!window.harrisonBannerSync) {

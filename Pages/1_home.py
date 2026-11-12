@@ -164,11 +164,11 @@ st.markdown(
     }}
 
     @media (min-width: 769px) {{
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .stApp::before {{
+        html[data-hxc-sidebar="open"] .stApp::before {{
             inset: 0 0 0 21rem;
         }}
 
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"]))
+        html[data-hxc-sidebar="open"]
         [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {{
             box-sizing: border-box !important;
             margin-left: 21rem !important;

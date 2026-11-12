@@ -11,3 +11,11 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+    # Streamlit minor/major releases have changed page layout internals before
+    # (e.g. 1.66 replaced the sidebar's aria-expanded). Upgrade those by hand
+    # after checking the site; security/patch releases still come through.
+    ignore:
+      - dependency-name: "streamlit"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
