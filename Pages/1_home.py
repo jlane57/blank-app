@@ -140,6 +140,7 @@ st.markdown(
 
     .home-hero p {{
         margin: 0;
+        overflow-wrap: anywhere;
         color: #102A43;
         font-size: 1.15rem;
         font-weight: 600;
@@ -167,19 +168,12 @@ st.markdown(
             inset: 0 0 0 21rem;
         }}
 
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-hero::after {{
-            left: calc(50% + 10.5rem);
-            width: calc(100% - 21rem);
-        }}
-
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-hero-content {{
-            transform: translate(10.5rem, -2.5rem);
-        }}
-
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-disclaimer,
-        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"])) .home-placeholders {{
-            position: relative;
-            left: 10.5rem;
+        body:has([data-testid="stSidebar"]:not([aria-expanded="false"]):not([data-collapsed="true"]))
+        [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {{
+            box-sizing: border-box !important;
+            margin-left: 21rem !important;
+            width: calc(100% - 21rem) !important;
+            max-width: none !important;
         }}
     }}
 

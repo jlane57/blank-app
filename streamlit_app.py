@@ -407,9 +407,14 @@ st.markdown(
         outline: 2px solid #F58220;
     }
 
-    @media (max-width: 640px) {
-        [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"] {
-            padding: 2.5rem 1.5rem 2rem;
+    @media (max-width: 768px) {
+        [data-testid="stAppViewContainer"] [data-testid="stMainBlockContainer"]:not(:has(.home-hero)) {
+            width: calc(100% - 1rem) !important;
+            max-width: none !important;
+            margin-inline: auto !important;
+            padding: 2.5rem 1rem 2rem !important;
+            border-left-width: 5px;
+            border-right-width: 3px;
         }
     }
     </style>
